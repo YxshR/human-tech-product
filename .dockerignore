@@ -1,0 +1,5 @@
+**/node_modules
+**/dist
+.git
+*.tgz
+_to_delete

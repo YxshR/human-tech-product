@@ -1,0 +1,6 @@
+{
+  "name": "@humantech/config",
+  "version": "0.1.0",
+  "private": true,
+  "files": ["tsconfig.package.json"]
+}

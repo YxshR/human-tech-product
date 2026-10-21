@@ -1,0 +1,23 @@
+{
+  "name": "@humantech/database",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "bootstrap": "tsx src/cli.ts bootstrap",
+    "migrate": "tsx src/cli.ts migrate",
+    "seed": "tsx src/cli.ts seed",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@humantech/authz": "workspace:*",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.10",
+    "@humantech/contracts": "workspace:*"
+  }
+}
