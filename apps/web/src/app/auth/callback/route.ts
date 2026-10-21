@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { env } from '@/lib/env';
 import { discovery, redirectUri } from '@/lib/oidc';
 import { safeReturnTo } from '@/lib/pkce';
-import { sessionCookie } from '@/lib/session';
+import { refreshCookie, sessionCookie } from '@/lib/session';
 
 export async function GET(req: NextRequest) {
   const raw = req.cookies.get('ht_oidc')?.value;
@@ -25,13 +25,14 @@ export async function GET(req: NextRequest) {
     cache: 'no-store',
   });
   if (!res.ok) return fail();
-  const tok = (await res.json()) as { access_token?: string; id_token?: string; expires_in?: number };
+  const tok = (await res.json()) as { access_token?: string; id_token?: string; refresh_token?: string; expires_in?: number };
   // The API validates this token (audience = OIDC_AUDIENCE). Use the id_token when the IdP issues no API access token.
   const bearer = process.env.OIDC_USE_ID_TOKEN === 'true' ? tok.id_token : tok.access_token;
   if (!bearer) return fail();
 
   const out = NextResponse.redirect(new URL(safeReturnTo(saved.returnTo), env('APP_URL')));
   out.cookies.set(sessionCookie(bearer, Math.min(tok.expires_in ?? 3600, 8 * 3600)));
+  if (tok.refresh_token) out.cookies.set(refreshCookie(tok.refresh_token));
   out.cookies.delete({ name: 'ht_oidc', path: '/auth' });
   return out;
 }

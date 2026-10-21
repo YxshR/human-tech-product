@@ -10,6 +10,7 @@
     "bootstrap": "tsx src/cli.ts bootstrap",
     "migrate": "tsx src/cli.ts migrate",
     "seed": "tsx src/cli.ts seed",
+    "platform": "tsx src/cli.ts",
     "test": "vitest run"
   },
   "dependencies": {

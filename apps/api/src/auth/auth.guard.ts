@@ -51,12 +51,14 @@ export class AuthGuard implements CanActivate {
     }
     req.auth = auth;
 
-    const required = this.reflector.getAllAndOverride<PermissionKey | undefined>(PERMISSION_KEY, targets);
+    const required = this.reflector.getAllAndOverride<PermissionKey[] | undefined>(PERMISSION_KEY, targets);
     if (required) {
-      if (!isPermissionKey(required)) throw new Error(`unknown permission on route: ${required}`);
-      if (!auth.permissions.has(required)) throw forbidden();
-      const mfa = requireMfaForCritical(auth, sensitivityOf(required));
-      if (!mfa.allowed) throw new ApiError('mfa_required', 403, 'This action requires multi-factor authentication');
+      for (const r of required) if (!isPermissionKey(r)) throw new Error(`unknown permission on route: ${r}`);
+      const held = required.filter((r) => auth.permissions.has(r));
+      if (held.length === 0) throw forbidden();
+      // MFA is demanded only when every permission that grants access is critical.
+      const needsMfa = held.every((r) => !requireMfaForCritical(auth, sensitivityOf(r)).allowed);
+      if (needsMfa) throw new ApiError('mfa_required', 403, 'This action requires multi-factor authentication');
     }
     return true;
   }

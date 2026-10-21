@@ -86,6 +86,7 @@ function calcEmployee(emp: EmployeeInput, ctx: Ctx): EmployeeResult {
   if (working.lte(0)) ctx.exceptions.push({ code: 'NO_WORKING_DAYS', severity: 'blocking', employeeId: emp.employeeId, message: 'Working days must be greater than zero' });
   if (paid.lt(0) || paid.gt(working)) ctx.exceptions.push({ code: 'PAID_DAYS_OUT_OF_RANGE', severity: 'blocking', employeeId: emp.employeeId,
     message: `Paid days ${paid.toString()} must be between 0 and working days ${working.toString()}`, details: { paidDays: paid.toString(), workingDays: working.toString() } });
+  if (working.gt(0) && paid.eq(0)) ctx.exceptions.push({ code: 'ZERO_PAID_DAYS', severity: 'warning', employeeId: emp.employeeId, message: 'No paid days in this period, so the pay will be zero. Check attendance and leave.', details: { workingDays: working.toString() } });
   if (emp.components.length === 0) ctx.exceptions.push({ code: 'NO_SALARY_STRUCTURE', severity: 'blocking', employeeId: emp.employeeId, message: 'Employee has no salary components for this period' });
 
   const factor = working.gt(0) && paid.gte(0) && paid.lte(working) ? paid.div(working) : ZERO;

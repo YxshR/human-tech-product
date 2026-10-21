@@ -39,6 +39,8 @@ export async function bootstrapRoles(opts: BootstrapOptions): Promise<void> {
     if (!db.rowCount) {
       await admin.query(`CREATE DATABASE ${ident(opts.database)} OWNER humantech_owner`);
     }
+    // A database created beforehand (managed Postgres, manual setup) must still end up owned by the owner role.
+    await admin.query(`ALTER DATABASE ${ident(opts.database)} OWNER TO humantech_owner`);
     await admin.query(`REVOKE ALL ON DATABASE ${ident(opts.database)} FROM PUBLIC`);
     await admin.query(
       `GRANT CONNECT ON DATABASE ${ident(opts.database)} TO humantech_app, humantech_system`,

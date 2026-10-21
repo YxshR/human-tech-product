@@ -13,3 +13,6 @@ export async function getTenantId(): Promise<string | undefined> {
 }
 export const sessionCookie = (token: string, maxAgeSec: number) => ({ name: SESSION_COOKIE, value: token, ...base(), maxAge: maxAgeSec });
 export const tenantCookie = (id: string) => ({ name: TENANT_COOKIE, value: id, ...base(), maxAge: 60 * 60 * 24 * 30 });
+export const REFRESH_COOKIE = 'ht_refresh';
+/** Only sent to /auth/* routes, never to pages or the API. */
+export const refreshCookie = (token: string) => ({ name: REFRESH_COOKIE, value: token, ...base(), path: '/auth', maxAge: 60 * 60 * 24 * 30 });

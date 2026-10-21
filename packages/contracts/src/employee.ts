@@ -59,3 +59,6 @@ export const employeeListQuery = z.object({
   cursor: z.string().max(512).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(25),
 }).strict();
+
+/** Gives an employee record a login (or removes it with null). The person must already be a member of the company. */
+export const linkLogin = z.object({ userId: uuid.nullable() }).strict();

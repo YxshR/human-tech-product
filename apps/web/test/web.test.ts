@@ -15,5 +15,5 @@ describe('pkce', () => {
 describe('safeReturnTo (open-redirect guard)', () => {
   it.each(['/employees', '/employees/abc?x=1'])('allows %s', (p) => expect(safeReturnTo(p)).toBe(p));
   it.each(['//evil.test', 'https://evil.test', '/\\evil.test', 'javascript:alert(1)', '/a\r\nSet-Cookie: x=1', '', null, undefined])('blocks %j', (p) =>
-    expect(safeReturnTo(p as string | null)).toBe('/employees'));
+    expect(safeReturnTo(p as string | null)).toBe('/dashboard'));
 });

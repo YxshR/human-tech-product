@@ -6,6 +6,8 @@ export interface HandlerContext {
   /** Runs `fn` in a transaction scoped to the job's tenant (RLS applies; no cross-tenant reach). */
   tx<T>(fn: (c: PoolClient) => Promise<T>, opts?: { userId?: string; reason?: string }): Promise<T>;
   log: (msg: string, extra?: Record<string, unknown>) => void;
+  /** Delete payload keys (one-time secrets) from the stored job once they are no longer needed. */
+  scrub(keys: string[]): Promise<void>;
 }
 export type JobHandler = (job: Job, ctx: HandlerContext) => Promise<void>;
 
@@ -58,6 +60,7 @@ export class JobRunner {
     const ctx: HandlerContext = {
       tx: (fn, o) => withContext(this.opts.appPool, { tenantId: job.tenantId, userId: o?.userId, reason: o?.reason ?? `job ${job.type}` }, fn),
       log: (m, e) => this.log(m, { jobId: job.id, type: job.type, ...e }),
+      scrub: async (keys) => { await this.opts.queue.scrub(job, this.opts.workerId, keys); },
     };
     try {
       if (!handler) throw new PermanentJobError('no_handler', `no handler registered for ${job.type}`);

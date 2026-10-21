@@ -22,6 +22,6 @@ export class MeController {
   @Get('permissions')
   permissions(@Req() req: Request) {
     const a = req.auth!;
-    return { data: { permissions: [...a.permissions].sort(), branchScope: a.branchScope.mode, mfaVerified: a.mfaVerified } };
+    return { data: { permissions: [...a.permissions].sort(), branchScope: a.branchScope.mode, mfaVerified: a.mfaVerified, employeeId: a.employeeId ?? null } };
   }
 }

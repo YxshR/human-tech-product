@@ -6,6 +6,6 @@ export const challengeFor = (verifier: string): string => b64url(createHash('sha
 
 /** Only same-origin relative paths are allowed as post-login destinations (no open redirect). */
 export function safeReturnTo(value: string | null | undefined): string {
-  if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\') || /[\r\n]/.test(value)) return '/employees';
+  if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\') || /[\r\n]/.test(value)) return '/dashboard';
   return value;
 }

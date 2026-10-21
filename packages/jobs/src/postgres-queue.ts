@@ -46,4 +46,8 @@ export class PostgresJobQueue implements JobQueue {
       'SELECT app.fail_outbox_event($1,$2,$3,$4,$5) AS r', [job.id, worker, error.code, error.message, permanent]);
     return rows[0]!.r;
   }
+  async scrub(job: Job, worker: string, keys: string[]): Promise<boolean> {
+    const { rows } = await this.systemPool.query<{ ok: boolean }>('SELECT app.scrub_outbox_payload($1,$2,$3::text[]) AS ok', [job.id, worker, keys]);
+    return rows[0]!.ok;
+  }
 }

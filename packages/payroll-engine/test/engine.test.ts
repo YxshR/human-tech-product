@@ -123,6 +123,7 @@ describe('adjustments and inputs', () => {
 describe('exceptions are blocking and explicit', () => {
   const codes = (r: ReturnType<typeof calculateRun>) => r.exceptions.map((e) => e.code);
   it('paid days above working days', () => expect(codes(calculateRun(run([emp({ paidDays: '31' })])))).toContain('PAID_DAYS_OUT_OF_RANGE'));
+  it('zero paid days is flagged as a warning, not blocking', () => { const r = calculateRun(run([emp({ paidDays: '0' })])); const e = r.exceptions.find((x) => x.code === 'ZERO_PAID_DAYS'); expect(e?.severity).toBe('warning'); });
   it('zero working days', () => expect(codes(calculateRun(run([emp({ workingDays: '0', paidDays: '0' })])))).toContain('NO_WORKING_DAYS'));
   it('no structure', () => expect(codes(calculateRun(run([emp({ components: [] })])))).toContain('NO_SALARY_STRUCTURE'));
   it('rule not bound', () => expect(codes(calculateRun(run([emp()], [])))).toContain('RULE_NOT_BOUND'));

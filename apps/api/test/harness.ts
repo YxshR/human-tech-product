@@ -21,6 +21,9 @@ export async function startHarness(): Promise<Harness> {
   const verifier = new OidcTokenVerifier(ISSUER, AUDIENCE, createLocalJWKSet({ keys: [jwk] }));
   const config = loadConfig({
     NODE_ENV: 'test', DATABASE_URL: process.env.TEST_APP_URL!, OIDC_ISSUER: ISSUER, OIDC_AUDIENCE: AUDIENCE, DATABASE_POOL_MAX: '5',
+    FIELD_ENCRYPTION_KEYS: `1:${Buffer.alloc(32, 7).toString('base64')},2:${Buffer.alloc(32, 9).toString('base64')}`,
+    BLIND_INDEX_KEY: Buffer.alloc(32, 5).toString('base64'), FILE_SIGNING_SECRET: 'test-signing-secret-0123456789abcdef',
+    STORAGE_DRIVER: 'local', STORAGE_LOCAL_DIR: process.env.TEST_STORAGE_DIR ?? '/tmp/humantech-test-files',
   });
   const app = await createApp(config, verifier);
   await app.init();

@@ -134,6 +134,7 @@ describe('authorization', () => {
     const r = await h.http().get('/me/permissions').set(H(await h.token('acme-emp'), A.id));
     expect(r.body.data.permissions).toContain('payslip.read_own');
     expect(r.body.data.permissions).not.toContain('employee.read');
+    expect(r.body.data).toHaveProperty('employeeId');   // lets the web app find "my profile"; null when the login has no employee record
   });
 });
 
@@ -227,6 +228,11 @@ describe('employees', () => {
     const a2 = await h.http().post(`/employees/${created.body.data.id}/archive`).set(H(t, A.id));
     expect(a1.body.data.employmentStatus).toBe('archived');
     expect(a2.status).toBe(200);
+    const id = created.body.data.id as string;
+    const def = await h.http().get('/employees').query({ limit: 100 }).set(H(t, A.id));
+    expect(def.body.data.some((e: { id: string }) => e.id === id)).toBe(false);          // hidden by default
+    const asked = await h.http().get('/employees').query({ status: 'archived', limit: 100 }).set(H(t, A.id));
+    expect(asked.body.data.some((e: { id: string }) => e.id === id)).toBe(true);          // still reachable when asked for
   });
 });
 

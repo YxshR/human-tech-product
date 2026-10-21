@@ -79,7 +79,7 @@ export const ROLES: Record<RoleKey, RoleDefinition> = {
     permissions: [
       'tenant.read', 'branch.read', 'org.read', 'org.manage',
       'employee.read', 'employee.create', 'employee.update', 'employee.archive', 'employee.exit',
-      'employee.read_sensitive', 'employee.update_sensitive', 'employee.export',
+      'employee.read_sensitive', 'employee.update_sensitive', 'employee.read_identifiers', 'employee.export',
       'onboarding.read', 'onboarding.manage', 'document.read', 'document.upload', 'document.delete',
       'attendance.read', 'attendance.mark', 'attendance.correct', 'attendance.approve_correction',
       'attendance.manage_policy',
@@ -130,7 +130,7 @@ export const ROLES: Record<RoleKey, RoleDefinition> = {
     permissions: [
       'tenant.read', 'branch.read', 'org.read', 'employee.read',
       'salary_structure.read', 'salary.read_assignment', 'salary.approve_assignment',
-      'employee.verify_bank', 'employee.read_bank',
+      'employee.verify_bank', 'employee.read_bank', 'employee.read_identifiers',
       'payroll.read', 'payroll.approve', 'payroll.finalize', 'payroll.approve_adjustment', 'payroll.activate',
       'payslip.read_any', 'report.read', 'audit.read',
       ...SELF_SERVICE,

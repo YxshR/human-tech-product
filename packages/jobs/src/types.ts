@@ -36,6 +36,8 @@ export interface JobQueue {
   claim(limit: number, worker: string, leaseSeconds?: number): Promise<Job[]>;
   complete(job: Job, worker: string): Promise<boolean>;
   fail(job: Job, worker: string, error: { code: string; message: string }, permanent?: boolean): Promise<FailOutcome>;
+  /** Remove one-time secrets (e.g. an invitation token) from the stored payload once they have been used. */
+  scrub(job: Job, worker: string, keys: string[]): Promise<boolean>;
 }
 
 /** Producers enqueue INSIDE the business transaction so the job exists iff the change committed. */

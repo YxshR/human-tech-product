@@ -60,7 +60,7 @@ export class EmployeesService {
       const team = add([...(auth.teamEmployeeIds ?? [])]);
       where.push(`(e.branch_id = ANY(${branches}::uuid[]) OR e.id = ANY(${team}::uuid[]))`);
     }
-    if (q.status) where.push(`e.employment_status = ${add(q.status)}`);
+    if (q.status) where.push(`e.employment_status = ${add(q.status)}`); else where.push("e.employment_status <> 'archived'");   // archived people are hidden unless asked for
     if (q.branchId) where.push(`e.branch_id = ${add(q.branchId)}`);
     if (q.q) {
       const p = add(like(q.q));
@@ -145,6 +145,28 @@ export class EmployeesService {
       const before = Object.fromEntries(keys.map((k) => [k, (cur as unknown as Record<string, unknown>)[COLUMN[k as string]!]]));
       await this.audit(c, auth, 'employee.update', id, redactKeys(before), redactKeys(changes));
       return this.view(auth, r);
+    });
+  }
+
+  /** Links (or, with null, unlinks) the login that may use self-service for this employee. */
+  async linkLogin(auth: RequestAuth, id: string, userId: string | null): Promise<{ employeeId: string; userId: string | null }> {
+    return this.db.run({ tenantId: auth.tenantId, userId: auth.userId, reason: userId ? 'login linked to employee' : 'login removed from employee' }, async (c) => {
+      const cur = (await c.query<Row>(`SELECT ${COLS} FROM employees e WHERE e.tenant_id=$1 AND e.id=$2 FOR UPDATE`, [auth.tenantId, id])).rows[0];
+      if (!cur) throw notFound('employee');
+      const d = authorizeOnEmployee(auth, 'employee.update', { tenantId: auth.tenantId, branchId: cur.branch_id, employeeId: cur.id });
+      if (!d.allowed) throw d.reason === 'missing_permission' ? forbidden() : notFound('employee');
+      if (userId !== null) {
+        if (['archived', 'exited'].includes(cur.employment_status)) throw new ApiError('invalid_state', 409, `A ${cur.employment_status} employee cannot be given a login`);
+        if (cur.user_id === userId) return { employeeId: id, userId };
+        if (cur.user_id) throw new ApiError('conflict', 409, 'This employee already has a login; remove it first');
+        const m = await c.query(`SELECT 1 FROM tenant_memberships WHERE tenant_id=$1 AND user_id=$2 AND status='active'`, [auth.tenantId, userId]);
+        if (!m.rowCount) throw new ApiError('validation_failed', 422, 'That person is not an active member of the company', [{ path: 'userId', message: 'not an active member' }]);
+        const other = await c.query(`SELECT 1 FROM employees WHERE tenant_id=$1 AND user_id=$2`, [auth.tenantId, userId]);
+        if (other.rowCount) throw new ApiError('conflict', 409, 'That login already belongs to another employee');
+      } else if (!cur.user_id) return { employeeId: id, userId: null };
+      await c.query(`UPDATE employees SET user_id=$3 WHERE tenant_id=$1 AND id=$2`, [auth.tenantId, id, userId]);
+      await this.audit(c, auth, userId ? 'employee.link_login' : 'employee.unlink_login', id, { userId: cur.user_id }, { userId });
+      return { employeeId: id, userId };
     });
   }
 

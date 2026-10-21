@@ -1,6 +1,6 @@
-import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { createEmployee, employeeListQuery, updateEmployee } from '@humantech/contracts';
+import { createEmployee, employeeListQuery, linkLogin, updateEmployee } from '@humantech/contracts';
 import { RequirePermission } from '../auth/decorators';
 import { ApiError } from '../common/errors';
 import { parse } from '../common/zod';
@@ -33,6 +33,12 @@ export class EmployeesController {
   @Patch(':id') @RequirePermission('employee.update')
   async update(@Req() req: Request, @Param('id', uuidPipe) id: string, @Body() body: unknown) {
     return { data: await this.svc.update(req.auth!, id, parse(updateEmployee, body)) };
+  }
+
+  /** Critical: whoever holds this login can read the employee's own payslips, leave and profile. */
+  @Put(':id/login') @RequirePermission('user.manage')
+  async linkLogin(@Req() req: Request, @Param('id', uuidPipe) id: string, @Body() body: unknown) {
+    return { data: await this.svc.linkLogin(req.auth!, id, parse(linkLogin, body).userId) };
   }
 
   @Post(':id/archive') @HttpCode(200) @RequirePermission('employee.archive')

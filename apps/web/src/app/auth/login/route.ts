@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const returnTo = safeReturnTo(req.nextUrl.searchParams.get('returnTo'));
   const url = new URL(d.authorization_endpoint);
   url.search = new URLSearchParams({
-    response_type: 'code', client_id: env('OIDC_CLIENT_ID'), redirect_uri: redirectUri(), scope: 'openid profile email',
+    response_type: 'code', client_id: env('OIDC_CLIENT_ID'), redirect_uri: redirectUri(), scope: process.env.OIDC_SCOPE ?? 'openid profile email',
     state, code_challenge: challengeFor(verifier), code_challenge_method: 'S256',
   }).toString();
   const res = NextResponse.redirect(url);
