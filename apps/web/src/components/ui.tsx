@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { submit, upload } from '@/lib/actions';
+import { Icon } from './icons';
 
 /** Flash message from ?ok= / ?error= (set by the shared server action). */
 export function Flash({ sp }: { sp: { ok?: string; error?: string } }) {
@@ -9,10 +10,20 @@ export function Flash({ sp }: { sp: { ok?: string; error?: string } }) {
   return null;
 }
 
-export function Page({ title, sub, actions, sp, children }: { title: string; sub?: ReactNode; actions?: ReactNode; sp?: { ok?: string; error?: string }; children: ReactNode }) {
+const HUES = [239, 262, 199, 160, 340, 25, 280, 190];
+/** Initials avatar with a stable colour per name. */
+export function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' | 'lg' }) {
+  const parts = name.trim().split(/\s+/);
+  const initials = ((parts[0]?.[0] ?? '?') + (parts.length > 1 ? parts[parts.length - 1]![0] : '')).toUpperCase();
+  let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const hue = HUES[h % HUES.length]!;
+  return <span className={`avatar ${size}`} style={{ background: `linear-gradient(135deg, hsl(${hue} 70% 55%), hsl(${(hue + 40) % 360} 70% 48%))` }} aria-hidden="true">{initials}</span>;
+}
+
+export function Page({ title, sub, actions, sp, avatar, children }: { title: string; sub?: ReactNode; actions?: ReactNode; sp?: { ok?: string; error?: string }; avatar?: ReactNode; children: ReactNode }) {
   return (
     <>
-      <div className="topbar"><div><h1>{title}</h1>{sub && <p className="muted" style={{ margin: '2px 0 0' }}>{sub}</p>}</div><div className="row">{actions}</div></div>
+      {title && <div className="topbar"><div className="topbar-lead">{avatar}<div><h1>{title}</h1>{sub && <p className="muted">{sub}</p>}</div></div><div className="row">{actions}</div></div>}
       {sp && <Flash sp={sp} />}
       {children}
     </>
@@ -31,7 +42,18 @@ export const Card = ({ title, children, wide }: { title?: string; children: Reac
   <section className="card" style={{ marginBottom: 16, ...(wide ? {} : { maxWidth: 760 }) }}>{title && <h2>{title}</h2>}{children}</section>
 );
 
-export const Empty = ({ children = 'Nothing here yet.' }: { children?: ReactNode }) => <p className="muted">{children}</p>;
+export const Empty = ({ children = 'Nothing here yet.' }: { children?: ReactNode }) => <div className="empty"><Icon name="inbox" /><div>{children}</div></div>;
+
+/** KPI tile; pass href to make it a link. */
+export function Stat({ label, value, icon, tone, href }: { label: string; value: ReactNode; icon: string; tone?: 'ok' | 'warn'; href?: string }) {
+  const body = (
+    <>
+      <span className={`stat-ico ${tone ?? ''}`}><Icon name={icon} /></span>
+      <span><span className="stat-label">{label}</span><br /><span className="stat-val">{value}</span></span>
+    </>
+  );
+  return href ? <Link href={href} className="stat-card">{body}</Link> : <div className="stat-card">{body}</div>;
+}
 export const Pill = ({ children, tone }: { children: ReactNode; tone?: 'ok' | 'warn' | 'bad' }) => <span className={`pill ${tone ?? ''}`}>{children}</span>;
 export const humanize = (s: string | null | undefined) => (s ? s.replace(/_/g, ' ') : '—');
 export const dash = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : String(v));

@@ -5,7 +5,7 @@ import {
 } from '@humantech/contracts';
 import { uploadDocument } from '@/lib/actions';
 import { can, load, loadOr404, options, type PageProps } from '@/lib/data';
-import { ActionButton, ActionForm, Card, Details, Empty, Fields, KV, Page, Pill, Table, Tabs, dash, fmtDate, fmtDateTime, humanize, type FieldSpec } from '@/components/ui';
+import { ActionButton, ActionForm, Avatar, Card, Details, Empty, Fields, KV, Page, Pill, Table, Tabs, dash, fmtDate, fmtDateTime, humanize, type FieldSpec } from '@/components/ui';
 import { SalaryTab, LeaveTab } from './more-tabs';
 import { CustomTab } from './custom-tab';
 
@@ -20,7 +20,7 @@ export default async function EmployeePage({ params, searchParams }: PageProps<{
   const base = `/employees/${id}`;
   const back = `${base}?tab=${tab}`;
   return (
-    <Page title={`${e.firstName} ${e.lastName ?? ''}`.trim()} sub={`Employee no. ${e.employeeNumber}${e.joinedAt ? ` · joined ${fmtDate(e.joinedAt)}` : ''}`} sp={sp} actions={<Pill tone={e.employmentStatus === 'active' ? 'ok' : undefined}>{humanize(e.employmentStatus)}</Pill>}>
+    <Page title={`${e.firstName} ${e.lastName ?? ''}`.trim()} avatar={<Avatar name={`${e.firstName} ${e.lastName ?? ''}`} size="lg" />} sub={`Employee no. ${e.employeeNumber}${e.joinedAt ? ` · joined ${fmtDate(e.joinedAt)}` : ''}`} sp={sp} actions={<Pill tone={e.employmentStatus === 'active' ? 'ok' : undefined}>{humanize(e.employmentStatus)}</Pill>}>
       <Tabs base={base} current={tab} items={TABS} />
       {tab === 'overview' && <Overview e={e} back={back} />}
       {tab === 'personal' && <Personal id={id} back={back} />}
