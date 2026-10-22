@@ -23,6 +23,7 @@ Everything below was either a reconciliation of contradictions in the source doc
 | Web sessions | — | Company is chosen at first sign-in (`/auth/company`); a stale company cookie is replaced | A person with one company never sees a picker |
 | Web build on Vercel | `Can't resolve '@humantech/contracts'` — workspace packages are consumed from `dist` and were not built | The web `build` script builds `@humantech/contracts` (and `authz`) first | Vercel builds only the web app |
 | Web UI | Plain sidebar and forms | New design system: light/dark theme, icon sidebar (collapsible, mobile drawer), ⌘K / `/` command palette with live employee and candidate search (`/search`), toasts, confirm dialogs, button progress, loading skeleton, role-aware home screen | Easier to learn and faster to use |
+| Sign-in page | `/` redirected straight to the identity provider; with no `OIDC_*`/`API_URL`/`APP_URL` set (e.g. a fresh Vercel deploy) the app threw errors and showed nothing | Public `/login` page (also the signed-out home); clear list of missing settings; provider/config failures return to `/login?error=` instead of crashing; redirects work without `APP_URL` | A deployment always shows something useful |
 | Bootstrap | Failed on a pre-created database | The database is re-owned by the owner role | Managed Postgres setups |
 | Profile screen | — | `/me/permissions` also returns `employeeId` (null if the login has no employee record) | Lets the web app open "my profile" and send change requests |
 

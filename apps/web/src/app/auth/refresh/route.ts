@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { env, isProd } from '@/lib/env';
+import { baseUrl } from '@/lib/config';
 import { discovery } from '@/lib/oidc';
 import { safeReturnTo } from '@/lib/pkce';
 import { REFRESH_COOKIE, refreshCookie, sessionCookie } from '@/lib/session';
@@ -12,8 +13,9 @@ const GUARD = 'ht_rf';
  */
 export async function GET(req: NextRequest) {
   const returnTo = safeReturnTo(req.nextUrl.searchParams.get('returnTo'));
+  const base = baseUrl(req.nextUrl.origin);
   const toLogin = () => {
-    const u = new URL('/auth/login', env('APP_URL')); u.searchParams.set('returnTo', returnTo);
+    const u = new URL('/login', base); u.searchParams.set('returnTo', returnTo);
     const r = NextResponse.redirect(u); r.cookies.delete('ht_session'); return r;
   };
   const refresh = req.cookies.get(REFRESH_COOKIE)?.value;
@@ -31,7 +33,7 @@ export async function GET(req: NextRequest) {
     const tok = (await res.json()) as { access_token?: string; id_token?: string; refresh_token?: string; expires_in?: number };
     const bearer = process.env.OIDC_USE_ID_TOKEN === 'true' ? tok.id_token : tok.access_token;
     if (!bearer) return toLogin();
-    const out = NextResponse.redirect(new URL(returnTo, env('APP_URL')));
+    const out = NextResponse.redirect(new URL(returnTo, base));
     out.cookies.set(sessionCookie(bearer, Math.min(tok.expires_in ?? 3600, 8 * 3600)));
     out.cookies.set(refreshCookie(tok.refresh_token ?? refresh));   // providers that rotate hand out a new one
     out.cookies.set({ name: GUARD, value: '1', httpOnly: true, secure: isProd(), sameSite: 'lax', path: '/', maxAge: 20 });

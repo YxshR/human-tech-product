@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { env, isProd } from '@/lib/env';
+import { baseUrl, missingConfig } from '@/lib/config';
 import { discovery, redirectUri } from '@/lib/oidc';
 import { challengeFor, randomToken, safeReturnTo } from '@/lib/pkce';
 
 export async function GET(req: NextRequest) {
-  const d = await discovery();
+  const back = (error: string) => NextResponse.redirect(new URL(`/login?error=${error}`, baseUrl(req.nextUrl.origin)));
+  if (missingConfig().length > 0) return back('config');
+  let d;
+  try { d = await discovery(); } catch { return back('unreachable'); }
   const state = randomToken(16);
   const verifier = randomToken(48);
   const returnTo = safeReturnTo(req.nextUrl.searchParams.get('returnTo'));
