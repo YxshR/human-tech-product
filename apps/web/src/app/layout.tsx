@@ -1,18 +1,15 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
+export const metadata: Metadata = { title: { default: 'humanTech HRMS', template: '%s · humanTech' }, robots: { index: false, follow: false } };
 
-export const metadata: Metadata = { title: { default: 'humanTech HRMS', template: '%s · humanTech' }, description: 'HR and payroll for growing Indian companies.', robots: { index: false, follow: false } };
-
-/** Runs before first paint so the saved theme, accent and sidebar state never flash. */
-const BOOT = `try{var d=document.documentElement,l=localStorage,t=l.getItem('ht-theme')||'system',a=l.getItem('ht-accent');d.dataset.theme=t==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;if(a&&a!=='indigo')d.dataset.accent=a;if(l.getItem('ht-side')==='collapsed')d.dataset.side='collapsed'}catch(e){}`;
+/** Sets the saved theme before first paint so the page never flashes the wrong colours. */
+const THEME_INIT = "try{var t=localStorage.getItem('ht_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t)}catch(e){}";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-IN" className={inter.variable} suppressHydrationWarning>
-      <head><script dangerouslySetInnerHTML={{ __html: BOOT }} /></head>
+    <html lang="en-IN" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: THEME_INIT }} /></head>
       <body>{children}</body>
     </html>
   );

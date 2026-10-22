@@ -21,6 +21,8 @@ Everything below was either a reconciliation of contradictions in the source doc
 | Employee list | Archived people appeared in lists | Hidden unless `status=archived` is asked for | Matches what the screen promises |
 | Pay run | Zero paid days produced a silent zero payslip | `ZERO_PAID_DAYS` warning exception | Visible before approval |
 | Web sessions | — | Company is chosen at first sign-in (`/auth/company`); a stale company cookie is replaced | A person with one company never sees a picker |
+| Web build on Vercel | `Can't resolve '@humantech/contracts'` — workspace packages are consumed from `dist` and were not built | The web `build` script builds `@humantech/contracts` (and `authz`) first | Vercel builds only the web app |
+| Web UI | Plain sidebar and forms | New design system: light/dark theme, icon sidebar (collapsible, mobile drawer), ⌘K / `/` command palette with live employee and candidate search (`/search`), toasts, confirm dialogs, button progress, loading skeleton, role-aware home screen | Easier to learn and faster to use |
 | Bootstrap | Failed on a pre-created database | The database is re-owned by the owner role | Managed Postgres setups |
 | Profile screen | — | `/me/permissions` also returns `employeeId` (null if the login has no employee record) | Lets the web app open "my profile" and send change requests |
 

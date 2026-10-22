@@ -1,29 +1,24 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { submit, upload } from '@/lib/actions';
-import { Icon } from './icons';
+import { Icon, type IconName } from './icons';
+import { Toast } from './toast';
+import { SubmitButton } from './submit-button';
+import { TableFilter } from './table-filter';
+
+export { TableFilter };
 
 /** Flash message from ?ok= / ?error= (set by the shared server action). */
 export function Flash({ sp }: { sp: { ok?: string; error?: string } }) {
   if (sp.error) return <p className="flash err" role="alert">{sp.error}</p>;
-  if (sp.ok) return <p className="flash ok" role="status">{sp.ok}</p>;
+  if (sp.ok) return <Toast message={sp.ok} />;
   return null;
 }
 
-const HUES = [239, 262, 199, 160, 340, 25, 280, 190];
-/** Initials avatar with a stable colour per name. */
-export function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' | 'lg' }) {
-  const parts = name.trim().split(/\s+/);
-  const initials = ((parts[0]?.[0] ?? '?') + (parts.length > 1 ? parts[parts.length - 1]![0] : '')).toUpperCase();
-  let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  const hue = HUES[h % HUES.length]!;
-  return <span className={`avatar ${size}`} style={{ background: `linear-gradient(135deg, hsl(${hue} 70% 55%), hsl(${(hue + 40) % 360} 70% 48%))` }} aria-hidden="true">{initials}</span>;
-}
-
-export function Page({ title, sub, actions, sp, avatar, children }: { title: string; sub?: ReactNode; actions?: ReactNode; sp?: { ok?: string; error?: string }; avatar?: ReactNode; children: ReactNode }) {
+export function Page({ title, sub, actions, sp, children }: { title: string; sub?: ReactNode; actions?: ReactNode; sp?: { ok?: string; error?: string }; children: ReactNode }) {
   return (
     <>
-      {title && <div className="topbar"><div className="topbar-lead">{avatar}<div><h1>{title}</h1>{sub && <p className="muted">{sub}</p>}</div></div><div className="row">{actions}</div></div>}
+      <div className="topbar"><div><h1>{title}</h1>{sub && <p className="muted" style={{ margin: '2px 0 0' }}>{sub}</p>}</div><div className="row">{actions}</div></div>
       {sp && <Flash sp={sp} />}
       {children}
     </>
@@ -42,17 +37,25 @@ export const Card = ({ title, children, wide }: { title?: string; children: Reac
   <section className="card" style={{ marginBottom: 16, ...(wide ? {} : { maxWidth: 760 }) }}>{title && <h2>{title}</h2>}{children}</section>
 );
 
-export const Empty = ({ children = 'Nothing here yet.' }: { children?: ReactNode }) => <div className="empty"><Icon name="inbox" /><div>{children}</div></div>;
+export const Empty = ({ children = 'Nothing here yet.', icon = 'inbox', title }: { children?: ReactNode; icon?: IconName; title?: string }) => (
+  <div className="empty"><div className="ico"><Icon name={icon} size={26} /></div>{title && <strong>{title}</strong>}<div>{children}</div></div>
+);
 
-/** KPI tile; pass href to make it a link. */
-export function Stat({ label, value, icon, tone, href }: { label: string; value: ReactNode; icon: string; tone?: 'ok' | 'warn'; href?: string }) {
-  const body = (
-    <>
-      <span className={`stat-ico ${tone ?? ''}`}><Icon name={icon} /></span>
-      <span><span className="stat-label">{label}</span><br /><span className="stat-val">{value}</span></span>
-    </>
+/** Round initials badge. */
+export const Avatar = ({ name, size }: { name: string; size?: 'sm' | 'lg' }) => (
+  <span className={`avatar ${size ?? ''}`} aria-hidden="true">{name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join('') || '?'}</span>
+);
+
+/** A row of headline numbers. Each can link somewhere. */
+export function StatGrid({ items }: { items: Array<{ label: string; value: ReactNode; sub?: ReactNode; icon: IconName; tone?: 'ok' | 'warn' | 'bad' | 'info'; href?: string }> }) {
+  return (
+    <div className="stats">
+      {items.map((s) => {
+        const body = <><span className={`stat-ico ${s.tone ?? ''}`}><Icon name={s.icon} size={22} /></span><div><div className="stat-val">{s.value}</div><div className="stat-lbl">{s.label}</div>{s.sub && <div className="stat-sub">{s.sub}</div>}</div></>;
+        return s.href ? <Link key={s.label} href={s.href} className="stat-card">{body}</Link> : <div key={s.label} className="stat-card">{body}</div>;
+      })}
+    </div>
   );
-  return href ? <Link href={href} className="stat-card">{body}</Link> : <div className="stat-card">{body}</div>;
 }
 export const Pill = ({ children, tone }: { children: ReactNode; tone?: 'ok' | 'warn' | 'bad' }) => <span className={`pill ${tone ?? ''}`}>{children}</span>;
 export const humanize = (s: string | null | undefined) => (s ? s.replace(/_/g, ' ') : '—');
@@ -74,7 +77,7 @@ export function Table<T>({ rows, cols, empty, caption }: { rows: T[]; cols: Arra
         <thead><tr>{cols.map((c) => <th key={c.h} style={c.right ? { textAlign: 'right' } : undefined}>{c.h}</th>)}</tr></thead>
         <tbody>
           {rows.map((r, i) => <tr key={i}>{cols.map((c) => <td key={c.h} style={c.right ? { textAlign: 'right' } : undefined}>{c.c(r)}</td>)}</tr>)}
-          {rows.length === 0 && <tr><td colSpan={cols.length} className="muted">{empty ?? 'Nothing to show.'}</td></tr>}
+          {rows.length === 0 && <tr><td colSpan={cols.length}><Empty>{empty ?? 'Nothing to show.'}</Empty></td></tr>}
         </tbody>
       </table>
     </div>
@@ -129,7 +132,7 @@ export function ActionForm({ path, method = 'POST', back, ok, then, fields, butt
       {Object.entries(values ?? {}).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
       {fields && <Fields fields={fields} />}
       {children}
-      <button className={`btn ${tone ?? ''}`} {...(confirm ? { 'data-confirm': confirm } : {})}>{button}</button>
+      <SubmitButton tone={tone} confirm={confirm}>{button}</SubmitButton>
     </form>
   );
 }

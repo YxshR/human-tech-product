@@ -26,3 +26,10 @@ The worker claims jobs from the `outbox_events` table (system role), runs handle
 
 ## Files
 Uploads pass through the API (size/type/hash checked), live in the configured storage driver, and are served only through 60-second signed links; every access is written to `file_access_events`. There is no malware scanner yet — put one in front of the bucket before accepting uploads from untrusted users.
+
+## Deploying the web app on Vercel
+
+- Project root: `apps/web`. Turn on "Include source files outside of the Root Directory" (the app uses the workspace packages).
+- Install: `pnpm install --frozen-lockfile` (run from the repo root). Build: the default `pnpm run build` — it builds `@humantech/contracts` and `@humantech/authz` first.
+- Environment variables (Production and Preview): `API_URL` (public URL of the API), `APP_URL` (public URL of this web app), `OIDC_ISSUER`, `OIDC_CLIENT_ID`, and, if your provider needs them, `OIDC_CLIENT_SECRET`, `OIDC_AUDIENCE`, `OIDC_SCOPE`, `OIDC_USE_ID_TOKEN`.
+- The API and worker are not run on Vercel; host them with the Docker images and point `API_URL` at the API.

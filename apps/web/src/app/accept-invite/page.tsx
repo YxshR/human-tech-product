@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import { api, ApiFailure } from '@/lib/api';
 import { tenantCookie } from '@/lib/session';
 import type { PageProps } from '@/lib/data';
-import { Logo } from '@/components/icons';
 
 export const metadata = { title: 'Accept invitation' };
 
@@ -26,9 +25,8 @@ export default async function AcceptInvite({ searchParams }: PageProps) {
   const token = sp.token ?? '';
   const valid = /^[A-Za-z0-9_-]{43}$/.test(token);
   return (
-    <div className="auth-wrap">
-      <main className="auth-card">
-        <Logo />
+    <main className="main">
+      <div className="card" style={{ maxWidth: 520 }}>
         <h1>Join your company on humanTech</h1>
         {sp.error && <p className="flash err" role="alert">{sp.error}</p>}
         {valid ? (
@@ -36,8 +34,8 @@ export default async function AcceptInvite({ searchParams }: PageProps) {
             <p>You have been invited to a company on humanTech. Accept to get access with the account you are signed in as.</p>
             <form action={accept}><input type="hidden" name="token" value={token} /><button className="btn primary">Accept invitation</button></form>
           </>
-        ) : <p>This link is incomplete. Open the link from your invitation email again.</p>}
-      </main>
-    </div>
+        ) : <p className="muted">This link is incomplete. Open the link from your invitation email again.</p>}
+      </div>
+    </main>
   );
 }
