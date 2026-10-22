@@ -1,11 +1,17 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { submit, upload } from '@/lib/actions';
+import { Icon, type IconName } from './icons';
+import { Toast } from './toast';
+import { SubmitButton } from './submit-button';
+import { TableFilter } from './table-filter';
+
+export { TableFilter };
 
 /** Flash message from ?ok= / ?error= (set by the shared server action). */
 export function Flash({ sp }: { sp: { ok?: string; error?: string } }) {
   if (sp.error) return <p className="flash err" role="alert">{sp.error}</p>;
-  if (sp.ok) return <p className="flash ok" role="status">{sp.ok}</p>;
+  if (sp.ok) return <Toast message={sp.ok} />;
   return null;
 }
 
@@ -31,7 +37,26 @@ export const Card = ({ title, children, wide }: { title?: string; children: Reac
   <section className="card" style={{ marginBottom: 16, ...(wide ? {} : { maxWidth: 760 }) }}>{title && <h2>{title}</h2>}{children}</section>
 );
 
-export const Empty = ({ children = 'Nothing here yet.' }: { children?: ReactNode }) => <p className="muted">{children}</p>;
+export const Empty = ({ children = 'Nothing here yet.', icon = 'inbox', title }: { children?: ReactNode; icon?: IconName; title?: string }) => (
+  <div className="empty"><div className="ico"><Icon name={icon} size={26} /></div>{title && <strong>{title}</strong>}<div>{children}</div></div>
+);
+
+/** Round initials badge. */
+export const Avatar = ({ name, size }: { name: string; size?: 'sm' | 'lg' }) => (
+  <span className={`avatar ${size ?? ''}`} aria-hidden="true">{name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join('') || '?'}</span>
+);
+
+/** A row of headline numbers. Each can link somewhere. */
+export function StatGrid({ items }: { items: Array<{ label: string; value: ReactNode; sub?: ReactNode; icon: IconName; tone?: 'ok' | 'warn' | 'bad' | 'info'; href?: string }> }) {
+  return (
+    <div className="stats">
+      {items.map((s) => {
+        const body = <><span className={`stat-ico ${s.tone ?? ''}`}><Icon name={s.icon} size={22} /></span><div><div className="stat-val">{s.value}</div><div className="stat-lbl">{s.label}</div>{s.sub && <div className="stat-sub">{s.sub}</div>}</div></>;
+        return s.href ? <Link key={s.label} href={s.href} className="stat-card">{body}</Link> : <div key={s.label} className="stat-card">{body}</div>;
+      })}
+    </div>
+  );
+}
 export const Pill = ({ children, tone }: { children: ReactNode; tone?: 'ok' | 'warn' | 'bad' }) => <span className={`pill ${tone ?? ''}`}>{children}</span>;
 export const humanize = (s: string | null | undefined) => (s ? s.replace(/_/g, ' ') : '—');
 export const dash = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : String(v));
@@ -52,7 +77,7 @@ export function Table<T>({ rows, cols, empty, caption }: { rows: T[]; cols: Arra
         <thead><tr>{cols.map((c) => <th key={c.h} style={c.right ? { textAlign: 'right' } : undefined}>{c.h}</th>)}</tr></thead>
         <tbody>
           {rows.map((r, i) => <tr key={i}>{cols.map((c) => <td key={c.h} style={c.right ? { textAlign: 'right' } : undefined}>{c.c(r)}</td>)}</tr>)}
-          {rows.length === 0 && <tr><td colSpan={cols.length} className="muted">{empty ?? 'Nothing to show.'}</td></tr>}
+          {rows.length === 0 && <tr><td colSpan={cols.length}><Empty>{empty ?? 'Nothing to show.'}</Empty></td></tr>}
         </tbody>
       </table>
     </div>
@@ -107,7 +132,7 @@ export function ActionForm({ path, method = 'POST', back, ok, then, fields, butt
       {Object.entries(values ?? {}).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
       {fields && <Fields fields={fields} />}
       {children}
-      <button className={`btn ${tone ?? ''}`} {...(confirm ? { 'data-confirm': confirm } : {})}>{button}</button>
+      <SubmitButton tone={tone} confirm={confirm}>{button}</SubmitButton>
     </form>
   );
 }
