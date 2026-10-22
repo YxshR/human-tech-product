@@ -1,0 +1,1 @@
+export default function NotFound() { return <main className="main"><div className="card"><h1>Not found</h1><p className="muted">This page does not exist, or you do not have access to it.</p></div></main>; }

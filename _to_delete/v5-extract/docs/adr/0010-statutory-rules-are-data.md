@@ -1,0 +1,3 @@
+# ADR-0010: Statutory rules are reviewed data, not code
+
+PF/ESI/PT/TDS/LWF/gratuity/bonus parameters change by notification and by state. They live in `statutory_rule_sets`: global, versioned, effective-dated, with source URL and publication date. A rule can be `approved` only when `reviewed_by ≠ prepared_by` (CHECK), approved ranges cannot overlap (exclusion constraint), and a payroll run can bind only approved rules. The engine ships with **no** statutory values; test rules in the repo are illustrative and labelled so. Loading real values is a compliance task with named reviewers (see `docs/compliance/statutory-onboarding.md`).

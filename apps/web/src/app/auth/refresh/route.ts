@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const returnTo = safeReturnTo(req.nextUrl.searchParams.get('returnTo'));
   const base = baseUrl(req.nextUrl.origin);
   const toLogin = () => {
-    const u = new URL('/login', base); u.searchParams.set('returnTo', returnTo);
+    const u = new URL('/login', base); u.searchParams.set('returnTo', returnTo); u.searchParams.set('error', 'expired');
     const r = NextResponse.redirect(u); r.cookies.delete('ht_session'); return r;
   };
   const refresh = req.cookies.get(REFRESH_COOKIE)?.value;

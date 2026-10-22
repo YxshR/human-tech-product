@@ -3,6 +3,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   { ignores: ['**/dist/**', '**/node_modules/**', '**/.next/**', 'docs/reference/**', '**/next-env.d.ts'] },
+  { files: ['tools/**/*.mjs', '**/next.config.mjs'], languageOptions: { globals: { process: 'readonly', setInterval: 'readonly', clearTimeout: 'readonly', console: 'readonly', fetch: 'readonly', URL: 'readonly', URLSearchParams: 'readonly', setTimeout: 'readonly' } } },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

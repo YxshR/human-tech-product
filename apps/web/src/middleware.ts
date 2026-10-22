@@ -19,4 +19,4 @@ export function middleware(req: NextRequest) {
   headers.set('x-return-to', req.nextUrl.pathname + req.nextUrl.search);
   return NextResponse.next({ request: { headers } });
 }
-export const config = { matcher: ['/((?!auth|login|_next|favicon.ico).*)'] };
+export const config = { matcher: ['/((?!auth|dev-idp|login|signup|pricing|_next|favicon.ico|$).*)'] };

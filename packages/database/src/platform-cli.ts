@@ -191,3 +191,31 @@ export async function syncRoles(owner: Pool, slug?: string): Promise<number> {
   for (const t of r.rows) await seedSystemRoles(owner, t.id);
   return r.rowCount ?? 0;
 }
+
+// ---------------- public sign-up requests ----------------
+export interface SignupRequestRow { id: string; planCode: string; companyName: string; contactName: string; email: string; phone: string | null; employeeCount: number | null; message: string | null; status: string; createdAt: string }
+export async function listSignupRequests(system: Pool, status = 'awaiting_payment'): Promise<SignupRequestRow[]> {
+  const r = await system.query(
+    `SELECT id, plan_code, company_name, contact_name, email_normalized, phone, employee_count, message, status, to_char(created_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
+       FROM signup_requests WHERE status=$1 ORDER BY created_at`, [status]);
+  return r.rows.map((x) => ({ id: x.id, planCode: x.plan_code, companyName: x.company_name, contactName: x.contact_name, email: x.email_normalized, phone: x.phone, employeeCount: x.employee_count, message: x.message, status: x.status, createdAt: x.created_at }));
+}
+
+/**
+ * Turns a paid sign-up request into a company: creates it (administrator = the person who asked), starts their plan's
+ * subscription, and marks the request approved. Run it AFTER the payment has been received.
+ */
+export async function approveSignup(owner: Pool, system: Pool, requestId: string, slug: string, operatorEmail: string): Promise<{ tenantId: string; slug: string; inviteToken: string; expiresAt: string }> {
+  const req = (await system.query(`SELECT id, plan_code, company_name, email_normalized, status FROM signup_requests WHERE id=$1`, [requestId])).rows[0];
+  if (!req) throw new Error('No sign-up request with that id');
+  if (req.status !== 'awaiting_payment') throw new Error(`That request is already ${req.status}`);
+  const company = await createCompany(owner, system, { slug, legalName: req.company_name, adminEmail: req.email_normalized, operatorEmail, status: 'active' });
+  await tx(owner, async (db) => {
+    await db.query(`SELECT set_config('app.tenant_id', $1, true), set_config('app.change_reason', 'subscription started from sign-up request', true)`, [company.tenantId]);
+    await db.query(
+      `INSERT INTO subscriptions (tenant_id, plan_id, status, current_period_start, current_period_end)
+       SELECT $1, id, 'active', current_date, (current_date + interval '1 month')::date FROM plans WHERE code=$2`, [company.tenantId, req.plan_code]);
+  });
+  await system.query(`UPDATE signup_requests SET status='approved', company_id=$2, reviewed_by=$3, reviewed_at=now() WHERE id=$1`, [requestId, company.tenantId, operatorEmail]);
+  return company;
+}

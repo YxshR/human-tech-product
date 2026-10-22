@@ -35,6 +35,7 @@ import { NotificationsService } from './platform/notifications.service';
 import { PlatformController } from './platform/platform.controller';
 import { ImportsController } from './platform/imports.controller';
 import { ImportsService } from './platform/imports.service';
+import { SignupController } from './platform/signup.controller';
 import { SettingsController } from './platform/settings.controller';
 import { SettingsService } from './platform/settings.service';
 import { ReportsService } from './platform/reports.service';
@@ -53,7 +54,7 @@ export class AppModule {
   static register(config: AppConfig, verifier: TokenVerifier): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, MeController, EmployeesController, OrgController, AccessController, LeaveController, AttendanceController, CompensationController, PayrollController, MePayslipsController, ProfileController, DocumentsController, OnboardingController, RecruitmentController, PlatformController, ImportsController, SettingsController],
+      controllers: [HealthController, MeController, EmployeesController, OrgController, AccessController, LeaveController, AttendanceController, CompensationController, PayrollController, MePayslipsController, ProfileController, DocumentsController, OnboardingController, RecruitmentController, PlatformController, ImportsController, SettingsController, SignupController],
       providers: [
         { provide: Database, useValue: new Database(config.DATABASE_URL, config.DATABASE_POOL_MAX) },
         { provide: TOKEN_VERIFIER, useValue: verifier },
