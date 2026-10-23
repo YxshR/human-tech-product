@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { env } from '@/lib/env';
+import { baseUrl } from '@/lib/config';
 import { discovery, redirectUri } from '@/lib/oidc';
 import { safeReturnTo } from '@/lib/pkce';
 import { refreshCookie, sessionCookie } from '@/lib/session';
@@ -8,13 +9,15 @@ export async function GET(req: NextRequest) {
   const raw = req.cookies.get('ht_oidc')?.value;
   const code = req.nextUrl.searchParams.get('code');
   const state = req.nextUrl.searchParams.get('state');
-  const fail = () => NextResponse.redirect(new URL('/auth/login', env('APP_URL')));
+  const base = baseUrl(req.nextUrl.origin);
+  const fail = () => NextResponse.redirect(new URL('/login?error=failed', base));
   if (!raw || !code || !state) return fail();
   let saved: { state: string; verifier: string; returnTo: string };
   try { saved = JSON.parse(raw); } catch { return fail(); }
   if (saved.state !== state) return fail();
 
-  const d = await discovery();
+  let d;
+  try { d = await discovery(); } catch { return fail(); }
   const res = await fetch(d.token_endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -30,7 +33,7 @@ export async function GET(req: NextRequest) {
   const bearer = process.env.OIDC_USE_ID_TOKEN === 'true' ? tok.id_token : tok.access_token;
   if (!bearer) return fail();
 
-  const out = NextResponse.redirect(new URL(safeReturnTo(saved.returnTo), env('APP_URL')));
+  const out = NextResponse.redirect(new URL(safeReturnTo(saved.returnTo), base));
   out.cookies.set(sessionCookie(bearer, Math.min(tok.expires_in ?? 3600, 8 * 3600)));
   if (tok.refresh_token) out.cookies.set(refreshCookie(tok.refresh_token));
   out.cookies.delete({ name: 'ht_oidc', path: '/auth' });

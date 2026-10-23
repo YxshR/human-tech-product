@@ -23,6 +23,10 @@ Everything below was either a reconciliation of contradictions in the source doc
 | Web sessions | — | Company is chosen at first sign-in (`/auth/company`); a stale company cookie is replaced | A person with one company never sees a picker |
 | Web build on Vercel | `Can't resolve '@humantech/contracts'` — workspace packages are consumed from `dist` and were not built | The web `build` script builds `@humantech/contracts` (and `authz`) first | Vercel builds only the web app |
 | Web UI | Plain sidebar and forms | New design system: light/dark theme, icon sidebar (collapsible, mobile drawer), ⌘K / `/` command palette with live employee and candidate search (`/search`), toasts, confirm dialogs, button progress, loading skeleton, role-aware home screen | Easier to learn and faster to use |
+| Sign-in page | `/` redirected straight to the identity provider; with no `OIDC_*`/`API_URL`/`APP_URL` set (e.g. a fresh Vercel deploy) the app threw errors and showed nothing | Public `/login` page (also the signed-out home); clear list of missing settings; provider/config failures return to `/login?error=` instead of crashing; redirects work without `APP_URL` | A deployment always shows something useful |
+| Developer testing | No way to sign in without a real identity provider | `tools/dev/dev-idp.mjs` (local e-mail + password sign-in, 7 demo accounts) and `tools/dev/demo-seed.mjs` (demo company, branch, 3 employees); both refuse `NODE_ENV=production`; the `/login` page lists the accounts only in dev | Try every role locally |
+| Public website | None: `/` went straight to the identity provider, so a visitor saw nothing | Public home (features, how it works, plans, FAQ), `/pricing`, `/signup` (plan request), `/login`; new `signup_requests` table (insert-only for the app role), public `POST /public/signup-requests` (validated, rate-limited, bot trap), operator commands `signup-requests` / `approve-signup`; plans Plus/Pro/Customize seeded | Plans and pay-first sign-up. **Prices and limits are placeholders**; plan features are not enforced yet; no payment gateway yet |
+| Local run | Needed a separate login server and many manual steps | `pnpm dev` does everything; dev CSP allows `unsafe-eval` in development only | Easier developer testing |
 | Bootstrap | Failed on a pre-created database | The database is re-owned by the owner role | Managed Postgres setups |
 | Profile screen | — | `/me/permissions` also returns `employeeId` (null if the login has no employee record) | Lets the web app open "my profile" and send change requests |
 
@@ -39,6 +43,7 @@ Everything below was either a reconciliation of contradictions in the source doc
 
 ## Known limits — read before go-live
 - **No statutory values ship.** Provident fund, ESI, professional tax, TDS/labour-welfare rules must be loaded and approved per `docs/compliance/statutory-onboarding.md`; payroll is off until humanTech activates a company.
+- Plan limits **and plan feature differences** are displayed but not enforced; there is no online payment gateway (payment is taken outside the app, then `approve-signup`).
 - Subscription limits are displayed (Billing) but **not enforced**.
 - Notifications reach the person who made a request (leave, profile change, bank, payslip); e-mail is sent only for invitations, when `SMTP_URL` is set. There are no approver-side reminders.
 - Retention policies and privacy/erasure requests are **workflow only**: nothing is deleted or anonymised automatically.

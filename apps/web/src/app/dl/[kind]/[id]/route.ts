@@ -1,3 +1,4 @@
+import { baseUrl } from '@/lib/config';
 import { NextRequest, NextResponse } from 'next/server';
 import { env } from '@/lib/env';
 import { getAccessToken, getTenantId } from '@/lib/session';
@@ -23,7 +24,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ kind: stri
   const link = LINKS[kind];
   const direct = DIRECT[kind];
   const token = await getAccessToken();
-  if (!token) return NextResponse.redirect(new URL('/auth/login', env('APP_URL')));
+  if (!token) return NextResponse.redirect(new URL('/login', baseUrl(_req.nextUrl.origin)));
   if ((!link && !direct) || !UUID.test(id)) return new NextResponse('Not found', { status: 404 });
   const api = env('API_URL').replace(/\/$/, '');
   const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
@@ -36,11 +37,11 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ kind: stri
   };
   if (direct) {
     const d = await fetch(`${api}${direct(id)}`, { headers, cache: 'no-store' });
-    if (d.status === 401) return NextResponse.redirect(new URL(`/auth/refresh?returnTo=${encodeURIComponent(_req.nextUrl.pathname)}`, env('APP_URL')));
+    if (d.status === 401) return NextResponse.redirect(new URL(`/auth/refresh?returnTo=${encodeURIComponent(_req.nextUrl.pathname)}`, baseUrl(_req.nextUrl.origin)));
     return d.ok && d.body ? passthrough(d) : new NextResponse(d.status === 403 ? 'You do not have access to this file.' : 'Not found', { status: d.status === 403 ? 403 : 404 });
   }
   const l = await fetch(`${api}${link!(id)}`, { headers, cache: 'no-store' });
-  if (l.status === 401) return NextResponse.redirect(new URL(`/auth/refresh?returnTo=${encodeURIComponent(_req.nextUrl.pathname)}`, env('APP_URL')));
+  if (l.status === 401) return NextResponse.redirect(new URL(`/auth/refresh?returnTo=${encodeURIComponent(_req.nextUrl.pathname)}`, baseUrl(_req.nextUrl.origin)));
   if (!l.ok) return new NextResponse(l.status === 403 ? 'You do not have access to this file.' : l.status === 409 ? 'This file is not ready yet. Try again in a minute.' : 'Not found', { status: l.status === 403 || l.status === 409 ? l.status : 404 });
   const url = ((await l.json()) as { data?: { url?: string } }).data?.url ?? '';
   if (!FILE_PATH.test(url)) return new NextResponse('Not found', { status: 404 });

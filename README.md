@@ -32,18 +32,31 @@ Tests create and drop a throw-away database per run; nothing touches your data.
 - Preparer cannot approve payroll; maker cannot verify bank details.
 - Money is never a float.
 
-## Run locally
+## Run locally (one command)
+Needs Node 22, pnpm and Postgres 16 (`docker compose up -d postgres` is the easiest).
 ```bash
-cp .env.example .env   # every variable is explained inside; generate the keys as the comments say
-export $(grep -v '^#' .env | xargs)
-pnpm --filter @humantech/database bootstrap   # once: creates the three DB roles (needs DATABASE_ADMIN_URL etc., see .env.example)
-pnpm db:migrate && pnpm db:seed
-pnpm --filter @humantech/api dev        # :4000
-pnpm --filter @humantech/worker dev
-pnpm --filter @humantech/web dev        # :3000
+pnpm install
+pnpm dev
 ```
-Sign-in needs an OIDC provider (Auth0, Keycloak, Entra, Cognito, Google…): create a public client with redirect URI `APP_URL/auth/callback` and set `OIDC_*`.
+`pnpm dev` creates `.env` (secret keys are generated), prepares the database, starts the API (:4000), worker and web app (:3000), with a **developer login built into the web app**, and creates a **Demo Company** with one account per role. Then open http://localhost:3000.
+
+| Page | Address |
+|---|---|
+| Home (features, plans, FAQ) | `/` |
+| Plans and pricing | `/pricing` |
+| Get started (request a company on a plan) | `/signup` |
+| Sign in | `/login` |
+| App (after sign-in) | `/dashboard` |
+
+Developer accounts (password `Demo@12345`, set `DEV_LOGIN_PASSWORD` to change it, `DEV_LOGIN=off` to disable): `owner@`, `hr@`, `finance@`, `approver@`, `recruiter@`, `manager@`, `employee@` + `demo.test`. On `/login` (development only) you get an e-mail + password form and one-click role buttons. The developer login is switched off (404) whenever `NODE_ENV=production`, and the demo-data script refuses to run there. (`tools/dev/dev-idp.mjs` is an older stand-alone login server; no longer needed.) Flags: `pnpm dev -- --rebuild`, `--no-demo`.
+
+Manual route, with your own identity provider: `cp .env.example .env`, fill it in, then `pnpm --filter @humantech/database bootstrap`, `pnpm db:migrate && pnpm db:seed`, and start `@humantech/api`, `@humantech/worker` and `@humantech/web`. Sign-in needs an OIDC provider (Auth0, Keycloak, Entra, Cognito, Google…): create a public client with redirect URI `APP_URL/auth/callback` and set `OIDC_*`.
 Local mail: `docker compose up -d mailpit`, then `SMTP_URL=smtp://localhost:1025` (UI on :8025).
+
+## How a company joins
+1. A visitor picks Plus, Pro or Customize on `/signup` (no login needed). The request is stored.
+2. A humanTech operator sends the payment link, then, once paid: `signup-requests` (list) and `approve-signup <id> --slug <company-slug> --print-link` (creates the company, starts the subscription, invites the requester as company admin).
+3. The requester signs in and accepts the invitation. **There is no online payment gateway yet**; payment is taken outside the app.
 
 ## Operating the platform (humanTech staff)
 Payroll is switched on **per company by us**, and statutory rules are **data we load and a second person approves** — no statutory value ships in code. Commands use the system DB role (`DATABASE_SYSTEM_URL`) and are audited:

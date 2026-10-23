@@ -2,7 +2,7 @@ import { Pool } from 'pg';
 import { bootstrapRoles } from './bootstrap';
 import { migrate } from './migrate';
 import { seedPermissions } from './seed';
-import { activatePayroll, approveRule, createCompany, importRules, listPayrollRequests, listRules, syncRoles } from './platform-cli';
+import { activatePayroll, approveRule, approveSignup, listSignupRequests, createCompany, importRules, listPayrollRequests, listRules, syncRoles } from './platform-cli';
 
 function need(name: string): string {
   const v = process.env[name];
@@ -55,6 +55,26 @@ async function main(): Promise<void> {
     } finally {
       await owner.end();
     }
+  } else if (cmd === 'signup-requests' || cmd === 'approve-signup') {
+    const system = new Pool({ connectionString: need('DATABASE_SYSTEM_URL'), max: 1 });
+    const args = process.argv.slice(3);
+    const flag = (n: string) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : undefined; };
+    try {
+      if (cmd === 'signup-requests') {
+        const rows = await listSignupRequests(system, flag('status'));
+        console.log(rows.length ? rows.map((r) => `${r.id}\t${r.planCode}\t${r.companyName}\t${r.contactName} <${r.email}>${r.phone ? ' ' + r.phone : ''}${r.employeeCount ? ` ~${r.employeeCount} staff` : ''}\t${r.createdAt}`).join('\n') : 'no requests');
+      } else {
+        const id = args.find((a) => !a.startsWith('--'));
+        const slug = flag('slug');
+        if (!id || !slug) throw new Error('usage: approve-signup <request-id> --slug <company-slug> [--operator <email>] [--print-link]  (run after payment is received)');
+        const owner = new Pool({ connectionString: need('DATABASE_OWNER_URL'), max: 1 });
+        try {
+          const r = await approveSignup(owner, system, id, slug, flag('operator') ?? need('OPERATOR_EMAIL'));
+          console.log(`company ${r.slug} created and subscription started; invitation for the requester expires ${r.expiresAt}. The worker e-mails the link.`);
+          if (args.includes('--print-link')) console.log(`${(process.env.WEB_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '')}/accept-invite?token=${encodeURIComponent(r.inviteToken)}`);
+        } finally { await owner.end(); }
+      }
+    } finally { await system.end(); }
   } else if (['payroll-requests', 'activate-payroll', 'import-rules', 'list-rules', 'approve-rule'].includes(cmd ?? '')) {
     const pool = new Pool({ connectionString: need('DATABASE_SYSTEM_URL'), max: 1 });
     const args = process.argv.slice(3);
@@ -85,7 +105,7 @@ async function main(): Promise<void> {
       await pool.end();
     }
   } else {
-    console.error('usage: cli.ts <bootstrap|migrate|seed|create-company|sync-roles|payroll-requests|activate-payroll|import-rules|list-rules|approve-rule>');
+    console.error('usage: cli.ts <bootstrap|migrate|seed|create-company|sync-roles|payroll-requests|activate-payroll|import-rules|list-rules|approve-rule|signup-requests|approve-signup>');
     process.exit(2);
   }
 }

@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+.git
+*.tgz
+_to_delete
+**/.next
+.data
+.env
+.env.*
+!.env.example

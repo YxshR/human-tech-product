@@ -10,3 +10,4 @@ export * from './payroll-ops';
 export * from './employee-extras';
 export * from './recruitment';
 export * from './platform';
+export * from './signup';

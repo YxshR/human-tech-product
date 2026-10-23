@@ -15,7 +15,7 @@ interface Opts { method?: string; body?: unknown; rawBody?: Buffer; contentType?
 /** Server-side API client. The browser never sees the access token or talks to the API directly. */
 export async function api<T>(path: string, opts: Opts = {}): Promise<T> {
   const token = await getAccessToken();
-  if (!token) redirect('/auth/login');
+  if (!token) redirect('/login');
   const headers: Record<string, string> = { Authorization: `Bearer ${token}`, Accept: 'application/json' };
   if (opts.tenant !== false) {
     const t = await getTenantId();
