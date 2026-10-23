@@ -82,6 +82,24 @@ if (outOfDate || flags.has('--rebuild')) {
 const cli = (args) => { const r = spawnSync('node', ['packages/database/dist/cli.js', ...args], { env, encoding: 'utf8' }); if (r.status !== 0) die(`${args[0]} failed:\n${r.stdout}${r.stderr}`); return r.stdout.trim(); };
 log('Preparing the database …'); cli(['bootstrap']); console.log('  ' + cli(['migrate'])); console.log('  ' + cli(['seed']));
 
+// ---------- 2b. free the ports ----------
+// A leftover API/web from an earlier run keeps the port, so the new one cannot start and sign-in then fails (the old API
+// trusts a different token issuer). Stop whatever is listening on our two ports; these are development servers.
+function freePort(port) {
+  const r = spawnSync('lsof', ['-ti', `tcp:${port}`, '-sTCP:LISTEN'], { encoding: 'utf8' });
+  const pids = (r.stdout ?? '').split('\n').map((x) => x.trim()).filter((x) => /^\d+$/.test(x) && Number(x) !== process.pid);
+  for (const pid of pids) {
+    const name = spawnSync('ps', ['-p', pid, '-o', 'command='], { encoding: 'utf8' }).stdout.trim().slice(0, 90);
+    console.log(`  port ${port} is in use by pid ${pid} (${name}) - stopping it`);
+    try { process.kill(Number(pid), 'SIGTERM'); } catch { /* already gone */ }
+  }
+  return pids.length;
+}
+if (freePort(4000) + freePort(3000) > 0) await sleep(1500);
+for (const port of [4000, 3000]) {
+  if (spawnSync('lsof', ['-ti', `tcp:${port}`, '-sTCP:LISTEN'], { encoding: 'utf8' }).stdout.trim()) die(`Port ${port} is still in use. Close the program using it (lsof -i :${port}) and run pnpm dev again.`);
+}
+
 // ---------- 3. start everything ----------
 const kids = [];
 const COLORS = { api: 36, worker: 33, web: 32 };
