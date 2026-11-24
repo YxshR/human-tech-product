@@ -23,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const tenantId = jar.get(TENANT_COOKIE)?.value;
   const valid = me.data.companies.some((c) => c.id === tenantId);
   if (!valid) {
-    if (me.data.companies.length === 0) return <main className="main"><div className="card"><h1>No company access</h1><p className="muted">Your account ({me.data.email}) is not a member of any company yet. Ask your administrator for an invitation, then open the link in the invitation email.</p><form action="/auth/logout" method="post"><button className="btn">Sign out</button></form></div></main>;
+    if (me.data.companies.length === 0) redirect('/welcome');
     // No (or a stale) company selected: pages cannot set cookies, so a route does it and brings the person straight back.
     redirect(`/auth/company?returnTo=${encodeURIComponent((await headers()).get('x-return-to') ?? '/dashboard')}`);
   }
