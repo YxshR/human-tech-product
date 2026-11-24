@@ -29,32 +29,37 @@ export default async function Login({ searchParams }: PageProps) {
   return (
     <div className="auth-wrap">
       <main className="card" id="main">
-        <div className="logo" aria-hidden="true">h</div>
-        <h1>Welcome to human<span style={{ color: 'var(--brand)' }}>Tech</span></h1>
-        <p className="muted">HR, attendance, leave and payroll for your company, in one place.</p>
-        {error && <p className="flash err" role="alert">{error}</p>}
+        <Link href="/" className="logo" aria-label="humanTech home" style={{ textDecoration: 'none' }}>h</Link>
+        <h1>Sign in to human<span style={{ color: 'var(--brand)' }}>Tech</span></h1>
+        <p className="muted">Your company&apos;s people, attendance, leave and payroll in one place.</p>
+        {error && <div className="flash err" role="alert" style={{ marginTop: 14 }}><Icon name="alert" size={18} /><div><strong>We could not sign you in</strong><span>{error}</span></div></div>}
         {dev && (
-          <form action="/auth/dev" method="post" className="form" style={{ marginTop: 8 }}>
+          <form action="/auth/dev" method="post" className="form" style={{ marginTop: 16 }}>
             <input type="hidden" name="returnTo" value={returnTo} />
-            <span className="site-pill" style={{ background: 'var(--warn-soft)', color: 'var(--warn)', alignSelf: 'flex-start' }}>Developer sign-in · local only</span>
-            <label>E-mail<input name="email" type="email" required defaultValue="owner@demo.test" autoComplete="username" /></label>
+            <span className="site-pill warn" style={{ justifySelf: 'start' }}>Developer sign-in · this computer only</span>
+            <label>Email<input name="email" type="email" required defaultValue="owner@demo.test" autoComplete="username" /></label>
             <label>Password<input name="password" type="password" required defaultValue="Demo@12345" autoComplete="current-password" /></label>
-            <button className="btn primary" style={{ width: '100%', justifyContent: 'center', padding: '12px 16px' }}>Sign in</button>
-            <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>Or one click, no typing:</div>
+            <button className="btn primary lg block">Sign in</button>
+            <div className="divider">or sign in as a demo role in one click</div>
             <div className="quick-grid">{DEV_ACCOUNTS.map((a) => <button key={a.email} className="btn sm" name="quickEmail" value={a.email} formNoValidate formAction="/auth/dev?quick=1" type="submit"><span>{a.role}</span><small className="muted">{a.email.split('@')[0]}</small></button>)}</div>
           </form>
         )}
         {!dev && (missing.length > 0 ? (
-          <div className="flash" role="alert" style={{ background: 'var(--warn-soft)' }}>
-            <strong>This deployment is missing settings.</strong>
-            <p style={{ margin: '6px 0' }}>Add these environment variables where the web app is hosted, then redeploy:</p>
+          <div className="flash warn" role="alert" style={{ marginTop: 16 }}>
+            <strong>Sign-in is not set up on this site yet.</strong>
+            <p style={{ margin: '6px 0' }}>If you run this site: add these environment variables where the web app is hosted, then redeploy.</p>
             <ul className="plain-list">{missing.map((m) => <li key={m}><code>{m}</code></li>)}</ul>
           </div>
         ) : (
-          <a className="btn primary" href={href} style={{ width: '100%', justifyContent: 'center', padding: '12px 16px', marginTop: 8 }}>Sign in <Icon name="arrowRight" size={16} /></a>
+          <>
+            <a className="btn primary lg block" href={href} style={{ marginTop: 20 }}>Continue to sign in <Icon name="arrowRight" size={16} /></a>
+            <p className="hint" style={{ textAlign: 'center', marginTop: 10 }}>You sign in with your work account. We never see your password.</p>
+          </>
         ))}
-        <p className="muted" style={{ fontSize: 12.5, marginTop: 18 }}>Joining an existing company? Ask your administrator for an invitation. Starting a new one? Choose “Get started” below.</p>
-        <p style={{ fontSize: 13.5, margin: '10px 0 0' }}>New here? <Link href="/signup">Get started</Link> · <Link href="/pricing">See plans</Link> · <Link href="/">Home</Link></p>
+        <div className="auth-foot">
+          <span><strong style={{ color: 'var(--text)' }}>Joining your company?</strong> Use the link in your invitation email. No invitation? Ask your administrator to send one.</span>
+          <span><strong style={{ color: 'var(--text)' }}>Setting up a new company?</strong> <Link href="/signup">Get started free</Link> · <Link href="/pricing">See plans</Link></span>
+        </div>
       </main>
     </div>
   );

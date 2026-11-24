@@ -19,14 +19,14 @@ async function create(_prev: unknown, formData: FormData) {
     if (e instanceof ApiFailure) return { errors: { _form: e.message, ...Object.fromEntries((e.fields ?? []).map((f) => [f.path, f.message])) } };
     throw e;
   }
-  redirect(`/employees/${id}?ok=Employee+added.+Next:+start+onboarding+below.&tab=onboarding`);
+  redirect(`/employees/${id}?ok=Employee+added.+Next:+create+their+onboarding+checklist+below.&tab=onboarding`);
 }
 
 export default async function NewEmployee({ searchParams }: PageProps) {
   await searchParams;
   const branches = (await load<BranchView[]>('/branches')) ?? [];
   const departments = (await load<OrgItemView[]>('/org/departments')) ?? [];
-  if (branches.length === 0) return <Page title="Add employee"><Card><Empty>Add a branch first (Organisation → Branches), then come back.</Empty></Card></Page>;
+  if (branches.length === 0) return <Page title="Add employee" back={{ href: '/employees', label: 'Employees' }}><Card><Empty icon="building" title="Add a branch first" action={<a className="btn primary" href="/org?tab=branches">Go to Organisation</a>}>Every employee belongs to a branch (an office or location). Create one, then come back here.</Empty></Card></Page>;
   return (
     <NewForm action={create}
       branches={options(branches.filter((b) => b.status === 'active'), (b) => b.id, (b) => `${b.name} (${b.code})`)}

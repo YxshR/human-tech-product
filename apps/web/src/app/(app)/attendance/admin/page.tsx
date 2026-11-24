@@ -1,6 +1,6 @@
 import type { AttendancePolicyView, ShiftView } from '@humantech/contracts';
 import { employeeOptions, load, today, type PageProps } from '@/lib/data';
-import { ActionButton, ActionForm, Card, Empty, Page, Pill, Table, Tabs, fmtDate, humanize } from '@/components/ui';
+import { ActionButton, ActionForm, Card, Page, Pill, Table, Tabs, fmtDate, humanize, NoAccess } from '@/components/ui';
 
 export const metadata = { title: 'Attendance policy' };
 const TABS: Array<[string, string]> = [['shifts', 'Shifts'], ['policies', 'Policies'], ['assign', 'Assign shifts']];
@@ -12,9 +12,9 @@ export default async function AttendanceAdmin({ searchParams }: PageProps) {
   const back = `/attendance/admin?tab=${tab}`;
   const shifts = await load<ShiftView[]>('/attendance/shifts', { includeInactive: 'true' });
   return (
-    <Page title="Attendance policy" sub="Shifts, rules for lateness and missing punches, and who works which shift" sp={sp}>
+    <Page title="Attendance policy" sub="Shifts say when people work. Policies say what counts as late and what happens when someone forgets to check in or out." sp={sp}>
       <Tabs base="/attendance/admin" current={tab} items={TABS} />
-      {shifts === null ? <Empty>You do not have access to attendance policy.</Empty> : tab === 'shifts' ? <Shifts shifts={shifts} back={back} /> : tab === 'policies' ? <Policies back={back} /> : <Assign shifts={shifts} back={back} />}
+      {shifts === null ? <NoAccess what="attendance policy" /> : tab === 'shifts' ? <Shifts shifts={shifts} back={back} /> : tab === 'policies' ? <Policies back={back} /> : <Assign shifts={shifts} back={back} />}
     </Page>
   );
 }

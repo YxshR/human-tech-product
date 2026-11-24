@@ -1,6 +1,6 @@
 import { PRIVACY_REQUEST_TYPES, PRIVACY_TRANSITIONS, RETENTION_ENTITIES, type PrivacyRequestView, type RetentionView } from '@humantech/contracts';
 import { can, employeeOptions, load, type PageProps } from '@/lib/data';
-import { ActionForm, Card, Empty, Page, Pill, Table, Tabs, fmtDate, humanize } from '@/components/ui';
+import { ActionForm, Card, Page, Pill, Table, Tabs, fmtDate, humanize, NoAccess } from '@/components/ui';
 
 export const metadata = { title: 'Privacy' };
 
@@ -9,7 +9,7 @@ export default async function Privacy({ searchParams }: PageProps) {
   const manage = await can('privacy.manage');
   const tab = manage && sp.tab === 'retention' ? 'retention' : 'requests';
   return (
-    <Page title="Privacy" sub="Requests about personal data, and how long data is kept" sp={sp}>
+    <Page title="Privacy requests" sub={manage ? 'Requests from people to see, correct or delete their personal data, and the rules for how long data is kept.' : 'Ask your company to show you, correct or delete the personal data it holds about you.'} sp={sp}>
       {manage && <Tabs base="/privacy" current={tab} items={[['requests', 'Requests'], ['retention', 'Retention']]} />}
       {tab === 'requests' ? <Requests manage={manage} /> : <Retention />}
     </Page>
@@ -20,7 +20,7 @@ async function Requests({ manage }: { manage: boolean }) {
   const rows = await load<PrivacyRequestView[]>('/privacy-requests');
   const people = manage ? await employeeOptions() : [];
   const back = '/privacy';
-  if (rows === null) return <Empty>You do not have access.</Empty>;
+  if (rows === null) return <NoAccess what="this section" />;
   return (
     <>
       <Card wide>

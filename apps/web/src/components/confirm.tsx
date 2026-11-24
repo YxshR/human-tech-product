@@ -30,12 +30,12 @@ export function ConfirmGuard() {
   const yes = () => { const b = pending.current; approved.current = true; ref.current?.close(); setAsk(null); pending.current = null; b?.click(); };
 
   return (
-    <dialog ref={ref} className="confirm" onClose={() => setAsk(null)} onClick={(e) => { if (e.target === ref.current) close(); }} aria-label="Please confirm">
+    <dialog ref={ref} className={`confirm ${ask?.danger ? 'danger' : ''}`} onClose={() => setAsk(null)} onClick={(e) => { if (e.target === ref.current) close(); }} aria-label="Please confirm">
       <div className="c-ico"><Icon name="alert" size={22} /></div>
-      <h3>Please confirm</h3>
+      <h3>{ask?.danger ? 'Are you sure?' : 'Please confirm'}</h3>
       <p>{ask?.text}</p>
       <div className="row">
-        <button type="button" className="btn" onClick={close} autoFocus>Cancel</button>
+        <button type="button" className="btn" onClick={close} autoFocus>No, go back</button>
         <button type="button" className={`btn ${ask?.danger ? 'danger' : 'primary'}`} onClick={yes}>{ask?.action}</button>
       </div>
     </dialog>

@@ -15,7 +15,7 @@ export function Toast({ message }: { message: string }) {
   }, []);
   if (!shown) return null;
   return (
-    <div className="toasts" aria-live="polite">
+    <div className="toasts" aria-live="polite" onKeyDown={(e) => { if (e.key === 'Escape') setShown(false); }}>
       <div className="toast" role="status" data-toast>
         <span className="t-ico"><Icon name="check" size={16} /></span>
         <div className="t-body">{message}</div>

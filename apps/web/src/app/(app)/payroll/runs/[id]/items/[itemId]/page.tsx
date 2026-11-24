@@ -8,7 +8,7 @@ export default async function ItemPage({ params, searchParams }: PageProps & { p
   const { id, itemId } = await params; const sp = await searchParams;
   const { item, lines } = await loadOr404<{ item: RunItemView; lines: LineView[] }>(`/payroll/runs/${id}/items/${itemId}`);
   return (
-    <Page title={item ? `${item.employeeName} · pay calculation` : 'Pay calculation'} sub={item ? `${item.paidDays} paid days of ${item.workingDays}, ${item.unpaidDays} unpaid` : undefined} sp={sp} actions={<a className="btn" href={`/payroll/runs/${id}?tab=items`}>← Back to run</a>}>
+    <Page title={item ? `${item.employeeName} · pay calculation` : 'Pay calculation'} sub={item ? `${item.paidDays} paid days of ${item.workingDays}, ${item.unpaidDays} unpaid` : undefined} sp={sp} back={{ href: `/payroll/runs/${id}?tab=items`, label: 'Back to the pay run' }}>
       {lines.length === 0 ? <Empty>No lines.</Empty> : (
         <Card wide>
           <Table rows={lines} cols={[

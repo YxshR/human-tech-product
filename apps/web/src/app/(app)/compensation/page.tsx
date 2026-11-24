@@ -1,6 +1,6 @@
 import { COMPONENT_TYPES, STATUTORY_GROUPS, SUPPORTED_METHODS, type AssignmentView, type ComponentView, type StructureView } from '@humantech/contracts';
 import { can, load, today, type PageProps } from '@/lib/data';
-import { ActionButton, ActionForm, Card, Details, Empty, Page, Pill, Table, Tabs, dash, fmtDate, humanize, inr } from '@/components/ui';
+import { ActionButton, ActionForm, Card, Details, Empty, Page, Pill, Table, Tabs, dash, fmtDate, humanize, inr, NoAccess } from '@/components/ui';
 
 export const metadata = { title: 'Compensation' };
 
@@ -12,8 +12,8 @@ export default async function Compensation({ searchParams }: PageProps) {
   const tab = tabs.some(([k]) => k === sp.tab) ? sp.tab! : tabs[0]?.[0] ?? 'components';
   const back = `/compensation?tab=${tab}`;
   return (
-    <Page title="Compensation" sub="What people are paid and how it is built up" sp={sp}>
-      {tabs.length === 0 ? <Empty>You do not have access to compensation.</Empty> : (
+    <Page title="Compensation" sub="How pay is built. Components are the building blocks (basic, HRA, PF…), a structure combines them, and each employee is given a structure and a monthly amount." sp={sp}>
+      {tabs.length === 0 ? <NoAccess what="compensation" /> : (
         <>
           <Tabs base="/compensation" current={tab} items={tabs} />
           {tab === 'components' && <Components back={back} />}
@@ -28,7 +28,7 @@ export default async function Compensation({ searchParams }: PageProps) {
 async function Components({ back }: { back: string }) {
   const rows = await load<ComponentView[]>('/compensation/components');
   const manage = await can('salary_structure.manage');
-  if (rows === null) return <Empty>No access.</Empty>;
+  if (rows === null) return <NoAccess what="this section" />;
   return (
     <>
       <Card wide>
@@ -73,7 +73,7 @@ async function Structures({ back }: { back: string }) {
   const rows = await load<StructureView[]>('/compensation/structures');
   const components = (await load<ComponentView[]>('/compensation/components')) ?? [];
   const manage = await can('salary_structure.manage');
-  if (rows === null) return <Empty>No access.</Empty>;
+  if (rows === null) return <NoAccess what="this section" />;
   const versions = components.flatMap((c) => c.versions.filter((v) => v.status === 'active').map((v) => ({ id: v.id, code: c.code, label: c.label, v })));
   return (
     <>
@@ -117,7 +117,7 @@ async function Structures({ back }: { back: string }) {
 
 async function Pending({ back }: { back: string }) {
   const rows = await load<AssignmentView[]>('/compensation/assignments/pending');
-  if (rows === null) return <Empty>No access.</Empty>;
+  if (rows === null) return <NoAccess what="this section" />;
   return (
     <Card wide>
       <Table rows={rows} cols={[

@@ -1,6 +1,6 @@
 import { CANDIDATE_STAGES, JOB_STATUSES, CLIENT_STATUSES, type CandidateView, type ClientView, type JobView } from '@humantech/contracts';
 import { can, load, loadPaged, options, type PageProps } from '@/lib/data';
-import { ActionForm, Card, Empty, Page, Pager, Pill, Table, Tabs, humanize } from '@/components/ui';
+import { ActionForm, Card, Page, Pager, Pill, Table, Tabs, humanize, NoAccess } from '@/components/ui';
 
 export const metadata = { title: 'Recruitment' };
 
@@ -9,7 +9,7 @@ export default async function Recruitment({ searchParams }: PageProps) {
   const tabs: Array<[string, string]> = [['candidates', 'Candidates'], ['jobs', 'Job requirements'], ['clients', 'Clients']];
   const tab = tabs.some(([k]) => k === sp.tab) ? sp.tab! : 'candidates';
   return (
-    <Page title="Recruitment" sub="Candidates, jobs and clients" sp={sp}>
+    <Page title="Recruitment" sub="Track the people you are hiring, from first contact to joining. A hired candidate can be turned into an employee in one step." sp={sp}>
       <Tabs base="/recruitment" current={tab} items={tabs} />
       {tab === 'candidates' && <Candidates sp={sp} />}
       {tab === 'jobs' && <Jobs back="/recruitment?tab=jobs" />}
@@ -26,7 +26,7 @@ async function Candidates({ sp }: { sp: Record<string, string | undefined> }) {
   const create = await can('candidate.create');
   const jobs = create ? ((await load<JobView[]>('/job-requirements', { status: 'open' })) ?? []) : [];
   const clients = create ? ((await load<ClientView[]>('/clients')) ?? []) : [];
-  if (res === null) return <Empty>You do not have access to candidates.</Empty>;
+  if (res === null) return <NoAccess what="candidates" />;
   return (
     <>
       <form className="row card" role="search" style={{ marginBottom: 16 }}>
@@ -62,7 +62,7 @@ async function Jobs({ back }: { back: string }) {
   const rows = await load<JobView[]>('/job-requirements');
   const clients = (await load<ClientView[]>('/clients')) ?? [];
   const manage = await can('recruitment.manage');
-  if (rows === null) return <Empty>You do not have access.</Empty>;
+  if (rows === null) return <NoAccess what="this section" />;
   return (
     <>
       <Card wide>
@@ -89,7 +89,7 @@ async function Jobs({ back }: { back: string }) {
 async function Clients({ back }: { back: string }) {
   const rows = await load<ClientView[]>('/clients');
   const manage = await can('recruitment.manage');
-  if (rows === null) return <Empty>You do not have access.</Empty>;
+  if (rows === null) return <NoAccess what="this section" />;
   const c = (r: ClientView, k: string) => String((r.contact as Record<string, unknown>)[k] ?? '—');
   return (
     <>

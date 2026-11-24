@@ -1,6 +1,6 @@
 import type { CustomFieldView } from '@humantech/contracts';
 import { can, load } from '@/lib/data';
-import { ActionForm, Card, Empty, KV, type FieldSpec } from '@/components/ui';
+import { ActionForm, Card, Empty, KV, type FieldSpec, NoAccess } from '@/components/ui';
 
 type Row = CustomFieldView & { value: unknown };
 
@@ -8,11 +8,11 @@ type Row = CustomFieldView & { value: unknown };
 export async function CustomTab({ kind, id, back }: { kind: 'employees' | 'candidates'; id: string; back: string }) {
   const rows = await load<Row[]>(`/${kind}/${id}/custom-values`);
   const edit = await can(kind === 'employees' ? 'employee.update' : 'candidate.update');
-  if (rows === null) return <Empty>You do not have access to these fields.</Empty>;
+  if (rows === null) return <NoAccess what="these fields" />;
   const active = rows.filter((r) => r.active);
-  if (rows.length === 0) return <Card><Empty>Your company has not defined any custom fields. Admins can add them in Settings.</Empty></Card>;
+  if (rows.length === 0) return <Card><Empty icon="sliders" title="No custom fields yet">Custom fields hold extra information your company wants to record, such as blood group. Administrators add them in Settings.</Empty></Card>;
   const spec = (r: Row): FieldSpec => {
-    const base = { label: r.label, required: false, hint: r.required ? 'Required' : undefined };
+    const base = { label: r.label, required: false, hint: r.required ? 'Your company asks for this to be filled in' : undefined };
     const v = r.value;
     switch (r.valueType) {
       case 'long_text': return { ...base, name: `z:values.${r.internalKey}`, kind: 'textarea', value: (v as string) ?? '' };

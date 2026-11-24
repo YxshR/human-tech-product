@@ -1,7 +1,7 @@
 import { ACTIVITY_TYPES, CANDIDATE_STAGES, EMPLOYMENT_TYPES, type ActivityView, type BranchView, type CandidateView, type StageHistoryView } from '@humantech/contracts';
 import { CustomTab } from '../../../employees/[id]/custom-tab';
 import { can, load, loadOr404, options, today, type PageProps } from '@/lib/data';
-import { ActionButton, ActionForm, Card, Empty, KV, Page, Pill, Table, Tabs, dash, fmtDateTime, humanize, inr } from '@/components/ui';
+import { Avatar, ActionButton, ActionForm, Card, KV, Page, Pill, Table, Tabs, dash, fmtDateTime, humanize, inr, NoAccess } from '@/components/ui';
 
 export const metadata = { title: 'Candidate' };
 const TABS: Array<[string, string]> = [['overview', 'Overview'], ['activity', 'Activity'], ['history', 'Stage history'], ['custom', 'Custom fields']];
@@ -13,7 +13,8 @@ export default async function CandidatePage({ params, searchParams }: PageProps<
   const base = `/recruitment/candidates/${id}`; const back = `${base}?tab=${tab}`;
   return (
     <Page title={`${c.firstName} ${c.lastName ?? ''}`.trim()} sub={`${c.candidateCode}${c.roleTitle ? ` · ${c.roleTitle}` : ''}`} sp={sp}
-      actions={<><a className="btn" href="/recruitment">← Candidates</a><Pill tone={c.archived ? 'bad' : undefined}>{c.archived ? 'Archived' : humanize(c.stage)}</Pill></>}>
+      back={{ href: '/recruitment', label: 'Candidates' }} lead={<Avatar name={`${c.firstName} ${c.lastName ?? ''}`} size="lg" />}
+      actions={<Pill tone={c.archived ? 'bad' : 'info'}>{c.archived ? 'Archived' : humanize(c.stage)}</Pill>}>
       <Tabs base={base} current={tab} items={TABS} />
       {tab === 'overview' && <Overview c={c} back={back} />}
       {tab === 'activity' && <Activity c={c} back={back} />}
@@ -84,7 +85,7 @@ async function Overview({ c, back }: { c: CandidateView; back: string }) {
 async function Activity({ c, back }: { c: CandidateView; back: string }) {
   const rows = await load<ActivityView[]>(`/candidates/${c.id}/activities`);
   const update = await can('candidate.update');
-  if (rows === null) return <Empty>You do not have access.</Empty>;
+  if (rows === null) return <NoAccess what="this section" />;
   return (
     <>
       <Card wide>
@@ -108,6 +109,6 @@ async function Activity({ c, back }: { c: CandidateView; back: string }) {
 
 async function History({ c }: { c: CandidateView }) {
   const rows = await load<StageHistoryView[]>(`/candidates/${c.id}/history`);
-  if (rows === null) return <Empty>You do not have access.</Empty>;
+  if (rows === null) return <NoAccess what="this section" />;
   return <Card wide><Table rows={rows} cols={[{ h: 'When', c: (h) => fmtDateTime(h.changedAt) }, { h: 'From', c: (h) => (h.fromStage ? humanize(h.fromStage) : '—') }, { h: 'To', c: (h) => humanize(h.toStage) }, { h: 'Reason', c: (h) => h.reason ?? '' }]} empty="No changes yet." /></Card>;
 }
