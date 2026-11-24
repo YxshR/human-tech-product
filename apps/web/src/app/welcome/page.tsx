@@ -4,6 +4,7 @@ import { api, ApiFailure } from '@/lib/api';
 import { PLANS, planByCode } from '@/lib/plans';
 import { tenantCookie } from '@/lib/session';
 import { Icon } from '@/components/icons';
+import { SubmitButton } from '@/components/submit-button';
 import type { PageProps } from '@/lib/data';
 
 export const metadata = { title: 'Set up your company' };
@@ -37,31 +38,33 @@ export default async function Welcome({ searchParams }: PageProps) {
   if (me.data.companies.length > 0) redirect('/dashboard');
   const chosen = planByCode(sp.plan) ?? PLANS[0]!;
   return (
-    <main className="main">
-      <div className="card" style={{ maxWidth: 880, margin: '0 auto' }}>
+    <div className="auth-wrap">
+      <main className="card wide" id="main">
+        <ol className="stepper" aria-label="Sign-up steps"><li className="done"><span className="n">✓</span>Signed in</li><li className="on" aria-current="step"><span className="n">2</span>Choose a plan and name your company</li></ol>
         <h1>Set up your company</h1>
-        <p className="muted">Signed in as {me.data.email}. Choose a plan and name your company. You can change plans later.</p>
-        {sp.error && <p className="flash err" role="alert">{sp.error}</p>}
-        <form action={createCompany} className="form">
-          <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-            <legend className="muted" style={{ marginBottom: 8 }}>Plan</legend>
-            <div className="plan-grid">
+        <p className="muted">You are signed in as <strong>{me.data.email}</strong>. You will be the company&apos;s administrator and can invite everyone else afterwards.</p>
+        {sp.error && <div className="flash err" role="alert" style={{ marginTop: 14 }}><Icon name="alert" size={18} /><div><strong>Your company was not created</strong><span>{sp.error}</span></div></div>}
+        <form action={createCompany} className="form" style={{ maxWidth: 'none', marginTop: 20 }}>
+          <label style={{ maxWidth: 460 }}><span>Company name<span className="req" aria-hidden="true">*</span></span><input name="companyName" required minLength={2} maxLength={200} autoComplete="organization" placeholder="e.g. Acme Traders Pvt Ltd" autoFocus /><span className="hint">The name your employees will see. You can change it later.</span></label>
+          <fieldset className="field">
+            <legend>Plan<span className="req" aria-hidden="true">*</span></legend>
+            <div className="plan-pick">
               {PLANS.map((p) => (
-                <label key={p.code} className={`plan ${p.highlight ? 'hot' : ''}`} style={{ cursor: 'pointer' }}>
-                  <span className="row" style={{ gap: 8, alignItems: 'center' }}><input type="radio" name="planCode" value={p.code} defaultChecked={p.code === chosen.code} required /><h3>{p.name}</h3></span>
-                  <div className="plan-price">{p.price ? <><strong>{p.price}</strong><span> {p.per}</span></> : <strong>Let’s talk</strong>}</div>
-                  <ul className="plan-list"><li><Icon name="users" size={16} />{p.people}</li><li><Icon name="building" size={16} />{p.branches}</li></ul>
-                  <ul className="plan-feat">{p.features.slice(0, 4).map((f) => <li key={f}><Icon name="check" size={16} />{f}</li>)}</ul>
+                <label key={p.code}>
+                  <input type="radio" name="planCode" value={p.code} defaultChecked={p.code === chosen.code} required aria-label={p.name} />
+                  <h3>{p.name}</h3>
+                  <div className="plan-price">{p.price ? <><strong>{p.price}</strong><span> {p.per}</span></> : <strong>Tailored quote</strong>}</div>
+                  <span className="muted">{p.people} · {p.branches.toLowerCase()}</span>
+                  <ul>{p.features.slice(0, 4).map((f) => <li key={f}><Icon name="check" size={14} />{f}</li>)}</ul>
                 </label>
               ))}
             </div>
           </fieldset>
-          <label>Company name *<input name="companyName" required minLength={2} maxLength={200} autoComplete="organization" placeholder="Acme Traders Pvt Ltd" /></label>
-          <p className="muted" style={{ fontSize: 12.5 }}>No card needed now. Pro and Customize start with a 14-day trial; we will be in touch about billing before it ends.</p>
-          <button className="btn primary lg" style={{ justifyContent: 'center' }}>Create my company</button>
+          <div className="callout plain" style={{ margin: 0 }}><Icon name="info" size={18} /><div><p style={{ margin: 0 }}><strong style={{ display: 'inline' }}>No card needed.</strong> Free is free for good. Pro and Customize start with a 14-day trial, and we contact you about billing before it ends. You can change plan later without losing data.</p></div></div>
+          <div className="form-actions"><SubmitButton tone="primary">Create my company</SubmitButton></div>
         </form>
-        <form action="/auth/logout" method="post" style={{ marginTop: 12 }}><button className="btn ghost sm">Sign out</button></form>
-      </div>
-    </main>
+        <form action="/auth/logout" method="post" className="auth-foot"><span>Not {me.data.email}? <button className="btn ghost sm">Sign out</button></span></form>
+      </main>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 import { ACCRUAL_FREQUENCIES, type LeavePolicyView, type LeaveTypeView } from '@humantech/contracts';
 import { load, today, type PageProps } from '@/lib/data';
-import { ActionButton, ActionForm, Card, Empty, Page, Pill, Table, Tabs, fmtDate, humanize } from '@/components/ui';
+import { ActionButton, ActionForm, Card, Page, Pill, Table, Tabs, fmtDate, humanize, NoAccess } from '@/components/ui';
 
 export const metadata = { title: 'Leave policy' };
 const TABS: Array<[string, string]> = [['types', 'Leave types'], ['policies', 'Policies'], ['runs', 'Accrual & year end']];
@@ -11,9 +11,9 @@ export default async function LeaveAdmin({ searchParams }: PageProps) {
   const back = `/leave/admin?tab=${tab}`;
   const types = await load<LeaveTypeView[]>('/leave/types', { includeInactive: 'true' });
   return (
-    <Page title="Leave policy" sub="What kinds of leave exist and how balances build up" sp={sp}>
+    <Page title="Leave policy" sub="Leave types are the kinds of leave people can take (casual, sick…). Policies say how many days each person earns and when." sp={sp}>
       <Tabs base="/leave/admin" current={tab} items={TABS} />
-      {types === null ? <Empty>You do not have access to leave policy.</Empty> : tab === 'types' ? <Types types={types} back={back} /> : tab === 'policies' ? <Policies types={types} back={back} /> : <Runs back={back} />}
+      {types === null ? <NoAccess what="leave policy" /> : tab === 'types' ? <Types types={types} back={back} /> : tab === 'policies' ? <Policies types={types} back={back} /> : <Runs back={back} />}
     </Page>
   );
 }

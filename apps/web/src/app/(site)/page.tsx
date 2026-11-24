@@ -33,10 +33,11 @@ export default async function Home() {
             <span className="site-pill">Built for Indian companies</span>
             <h1>People operations,<br />without the spreadsheets.</h1>
             <p className="lead">humanTech brings employee records, attendance, leave, payroll and hiring into one clear, secure place, so your team spends time on people, not paperwork.</p>
-            <div className="row" style={{ gap: 12, marginTop: 24 }}>
-              <Link className="btn primary lg" href="/signup">Get started <Icon name="arrowRight" size={16} /></Link>
+            <div className="row" style={{ gap: 12, marginTop: 28 }}>
+              <Link className="btn primary lg" href="/signup">Get started free <Icon name="arrowRight" size={16} /></Link>
               <Link className="btn lg" href="/pricing">See plans &amp; pricing</Link>
             </div>
+            <p className="cta-note">Free for teams of up to 10. No card needed. Set up in about a minute.</p>
             <ul className="hero-points"><li><Icon name="check" size={16} />Rupees, India time, statutory-ready</li><li><Icon name="check" size={16} />Every company isolated and audited</li><li><Icon name="check" size={16} />Works on phone and desktop</li></ul>
           </div>
           <div className="mock" aria-hidden="true">
@@ -44,9 +45,9 @@ export default async function Home() {
             <div className="mock-body">
               <div className="mock-side">{['Home', 'Leave', 'Attendance', 'Employees', 'Payroll', 'Reports'].map((x, i) => <span key={x} className={i === 0 ? 'on' : ''}>{x}</span>)}</div>
               <div className="mock-main">
-                <div className="mock-hero">Good morning, Priya</div>
-                <div className="mock-stats"><div><b>248</b><small>Active employees</small></div><div><b>96%</b><small>Present today</small></div><div><b>12</b><small>Leave requests</small></div></div>
-                <div className="mock-rows"><span /><span /><span /><span /></div>
+                <div className="mock-hero">Good morning, Priya<small>3 leave requests are waiting for you</small></div>
+                <div className="mock-stats"><div><b>248</b><small>Active employees</small></div><div><b>96%</b><small>Present today</small></div><div><b>12</b><small>On leave</small></div></div>
+                <div className="mock-rows"><div><i />Arjun Mehta · Casual leave<span className="pill warn">Waiting</span></div><div><i />Sara Khan · Sick leave<span className="pill ok">Approved</span></div><div><i />November payroll<span className="pill info">In review</span></div></div>
               </div>
             </div>
           </div>
@@ -57,7 +58,7 @@ export default async function Home() {
         <div className="feat-grid">{FEATURES.map(([icon, t, d]) => <article key={t} className="feat"><span className="stat-ico"><Icon name={icon} size={22} /></span><h3>{t}</h3><p className="muted">{d}</p></article>)}</div>
       </Section>
 
-      <Section id="how" title="From sign-up to first payslip" lead="No long projects. We set you up." tone="alt">
+      <Section id="how" title="Up and running in three steps" lead="No long projects and no sales call needed to start." tone="alt">
         <div className="how-grid">{HOW.map(([n, t, d]) => <article key={n} className="how"><span className="how-n">{n}</span><h3>{t}</h3><p className="muted">{d}</p></article>)}</div>
       </Section>
 
@@ -76,8 +77,8 @@ export default async function Home() {
 
       <Section id="faq" title="Questions, answered"><Faq /></Section>
 
-      <section className="site-final"><div className="site-wrap"><h2>Ready to bring your people team together?</h2><p>Choose a plan and we will have you up and running.</p>
-        <div className="row" style={{ justifyContent: 'center', gap: 12 }}><Link className="btn primary lg" href="/signup">Get started</Link><Link className="btn lg" href="/login">I already have an account</Link></div></div></section>
+      <section className="site-final"><div className="site-wrap"><h2>Ready to bring your people team together?</h2><p>Start free in about a minute. Upgrade only when you need payroll and hiring.</p>
+        <div className="row" style={{ justifyContent: 'center', gap: 12 }}><Link className="btn primary lg" href="/signup">Get started free</Link><Link className="btn lg" href="/login">I already have an account</Link></div></div></section>
     </>
   );
 }

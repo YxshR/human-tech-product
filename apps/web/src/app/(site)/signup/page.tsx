@@ -18,17 +18,22 @@ export default async function Signup({ searchParams }: PageProps) {
   const offline = missingConfig().length > 0;
   return (
     <section className="site-sec"><div className="site-wrap" style={{ maxWidth: 560 }}>
-      <div className="card" style={{ textAlign: 'center', padding: 36 }}>
-        <h1>Get started with humanTech</h1>
-        <p className="muted">Sign in with Google, choose a plan and name your company. It takes about a minute, and you can start on the free plan with no card.</p>
-        {plan && <p style={{ marginTop: 12 }}>You chose <strong>{plan.name}</strong>{plan.price ? ` (${plan.price} ${plan.per})` : ''}.</p>}
+      <div className="card" style={{ padding: 32, margin: 0 }}>
+        <ol className="stepper" aria-label="Sign-up steps"><li className="on" aria-current="step"><span className="n">1</span>Sign in</li><li><span className="n">2</span>Choose a plan and name your company</li></ol>
+        <h1>Create your company on humanTech</h1>
+        <p className="muted" style={{ marginTop: 8 }}>It takes about a minute. First sign in with your Google account, then pick a plan and name your company. No card is needed.</p>
+        {plan && <div className="callout ok" style={{ marginTop: 16 }}><Icon name="check" size={18} /><div><strong>You chose {plan.name}{plan.price ? ` · ${plan.price} ${plan.per}` : ''}</strong><p>You can change this on the next step.</p></div></div>}
         {offline
-          ? <p className="flash" role="alert" style={{ background: 'var(--warn-soft)' }}>Sign-in is not configured on this deployment yet.</p>
-          : <a className="btn primary lg" href={`/auth/login?returnTo=${encodeURIComponent(next)}`} style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}>Continue with Google <Icon name="arrowRight" size={16} /></a>}
-        <ul className="plan-feat" style={{ marginTop: 22, textAlign: 'left' }}>
-          {PLANS.map((p) => <li key={p.code}><Icon name="check" size={16} /><span><strong>{p.name}</strong>: {p.people}{p.price ? `, ${p.price} ${p.per}` : ', tailored quote'}</span></li>)}
+          ? <p className="flash warn" role="alert" style={{ marginTop: 16 }}>Sign-up is not available on this site yet. Please try again later.</p>
+          : <a className="btn primary lg block" href={`/auth/login?returnTo=${encodeURIComponent(next)}`} style={{ marginTop: 16 }}>Continue with Google <Icon name="arrowRight" size={16} /></a>}
+        <p className="hint" style={{ textAlign: 'center', marginTop: 10 }}>We only use your Google account to sign you in. We never see your password.</p>
+        <ul className="plan-feat" style={{ marginTop: 20 }}>
+          {PLANS.map((p) => <li key={p.code}><Icon name="check" size={16} /><span><strong>{p.name}</strong>: {p.people.toLowerCase()}{p.price ? `, ${p.price} ${p.per}` : ', tailored quote'}</span></li>)}
         </ul>
-        <p className="muted" style={{ marginTop: 18 }}>Already have an account? <Link href="/login">Sign in</Link></p>
+        <div className="auth-foot">
+          <span>Already have an account? <Link href="/login">Sign in</Link></span>
+          <span>Invited by your company? Use the link in your invitation email instead.</span>
+        </div>
       </div>
     </div></section>
   );

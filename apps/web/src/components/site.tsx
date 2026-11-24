@@ -50,10 +50,11 @@ export function PlanCards() {
         <article key={p.code} className={`plan ${p.highlight ? 'hot' : ''}`}>
           {p.highlight && <span className="plan-flag">Most popular</span>}
           <h3>{p.name}</h3><p className="muted">{p.tagline}</p>
-          <div className="plan-price">{p.price ? <><strong>{p.price}</strong><span> {p.per}</span></> : <strong>Let’s talk</strong>}</div>
+          <div className="plan-price">{p.price ? <><strong>{p.price}</strong><span> {p.per}</span></> : <strong>Tailored quote</strong>}</div>
           <ul className="plan-list"><li><Icon name="users" size={16} />{p.people}</li><li><Icon name="building" size={16} />{p.branches}</li></ul>
           <ul className="plan-feat">{p.features.map((f) => <li key={f}><Icon name="check" size={16} />{f}</li>)}</ul>
-          <Link className={`btn ${p.highlight ? 'primary' : ''}`} href={`/signup?plan=${p.code}`} style={{ width: '100%', justifyContent: 'center' }}>{p.cta}</Link>
+          <Link className={`btn block ${p.highlight ? 'primary' : ''}`} href={`/signup?plan=${p.code}`}>{p.cta}</Link>
+          <span className="hint" style={{ textAlign: 'center' }}>{p.code === 'free' ? 'Free for good. No card needed.' : '14-day trial. No card needed.'}</span>
         </article>
       ))}
     </div>

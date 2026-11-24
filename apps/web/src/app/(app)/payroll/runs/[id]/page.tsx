@@ -13,7 +13,7 @@ export default async function RunPage({ params, searchParams }: Props) {
   const tab = tabs.some(([k]) => k === sp.tab) ? sp.tab! : 'summary';
   const base = `/payroll/runs/${id}`; const back = `${base}?tab=${tab}`;
   return (
-    <Page title={`Pay run ${run.periodCode}${run.revision > 1 ? ` · revision ${run.revision}` : ''}`} sub={humanize(run.runKind)} sp={sp} actions={<a className="btn" href="/payroll">← All pay runs</a>}>
+    <Page title={`Pay run ${run.periodCode}${run.revision > 1 ? ` · revision ${run.revision}` : ''}`} sub={`${humanize(run.runKind)} pay run. Work through the steps in order: calculate, review, approve, lock, then issue payslips.`} sp={sp} back={{ href: '/payroll', label: 'All pay runs' }} actions={<Pill tone={runTone(run.status)}>{run.status}</Pill>}>
       <Tabs base={base} current={tab} items={tabs} />
       {tab === 'summary' && <Summary run={run} back={back} />}
       {tab === 'exceptions' && <Exceptions run={run} back={back} />}

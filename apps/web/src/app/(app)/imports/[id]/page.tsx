@@ -11,7 +11,7 @@ export default async function ImportPage({ params, searchParams }: PageProps<{ i
   const commit = await can('import.commit');
   const back = `/imports/${id}`;
   return (
-    <Page title={`Import ${humanize(i.importType)}`} sub={fmtDateTime(i.createdAt)} sp={sp} actions={<a className="btn" href="/imports">← All imports</a>}>
+    <Page title={`Import ${humanize(i.importType)}`} sub={`Uploaded ${fmtDateTime(i.createdAt)}. Check the result below before anything is saved.`} sp={sp} back={{ href: '/imports', label: 'All imports' }}>
       <Card title="Result of the check" wide>
         <KV items={[['Status', <Pill key="s" tone={importTone(i.status)}>{humanize(i.status)}</Pill>], ['Rows in file', String(i.totalRows ?? '—')], ['Ready to import', String(i.acceptedRows ?? '—')], ['With problems', String(i.rejectedRows ?? '—')], ['Skipped duplicates', String(i.skippedRows)], ['If a duplicate is found', i.duplicatePolicy === 'skip' ? 'Skip it' : 'Stop (counts as a problem)']]} />
         <div className="row">
