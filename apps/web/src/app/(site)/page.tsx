@@ -18,9 +18,9 @@ const FEATURES: Array<[IconName, string, string]> = [
   ['shield', 'Roles & audit', 'Access by role and branch, sensitive fields masked, and a full history of who changed what.'],
 ];
 const HOW: Array<[string, string, string]> = [
-  ['1', 'Choose a plan', 'Pick Plus, Pro or Customize and tell us about your company.'],
-  ['2', 'We confirm payment', 'You get a secure payment link by e-mail. We create your company once it is paid.'],
-  ['3', 'Sign in and go', 'You receive an invitation, sign in, and invite your team with the right roles.'],
+  ['1', 'Sign in with Google', 'No forms to wait on and no payment link: continue with your Google account.'],
+  ['2', 'Choose a plan', 'Pick Free, Pro or Customize and name your company. It is created straight away.'],
+  ['3', 'Add your team', 'Invite your people with the right roles and start with attendance, leave and payroll.'],
 ];
 
 export default async function Home() {

@@ -44,7 +44,7 @@ pnpm dev
 |---|---|
 | Home (features, plans, FAQ) | `/` |
 | Plans and pricing | `/pricing` |
-| Get started (request a company on a plan) | `/signup` |
+| Get started (continue with Google, then choose a plan) | `/signup` → `/welcome` |
 | Sign in | `/login` |
 | App (after sign-in) | `/dashboard` |
 
@@ -54,9 +54,10 @@ Manual route, with your own identity provider: `cp .env.example .env`, fill it i
 Local mail: `docker compose up -d mailpit`, then `SMTP_URL=smtp://localhost:1025` (UI on :8025).
 
 ## How a company joins
-1. A visitor picks Plus, Pro or Customize on `/signup` (no login needed). The request is stored.
-2. A humanTech operator sends the payment link, then, once paid: `signup-requests` (list) and `approve-signup <id> --slug <company-slug> --print-link` (creates the company, starts the subscription, invites the requester as company admin).
-3. The requester signs in and accepts the invitation. **There is no online payment gateway yet**; payment is taken outside the app.
+1. A visitor opens `/signup` (or picks a plan on `/pricing`) and continues with Google (any OIDC provider works).
+2. On `/welcome` they choose **Free**, **Pro** or **Customize** and name their company. The company, its roles, their company-admin membership and the subscription are created in one transaction (`POST /me/company`, database function `app.create_company_for_user`). No payment link, approval step or e-mail is involved.
+3. Free is active immediately; Pro and Customize start as a 14-day trial. **There is no online payment gateway yet**, and the trial end is not enforced.
+4. People invited to an existing company use their invitation link instead; `platform create-company` remains for operators.
 
 ## Operating the platform (humanTech staff)
 Payroll is switched on **per company by us**, and statutory rules are **data we load and a second person approves** — no statutory value ships in code. Commands use the system DB role (`DATABASE_SYSTEM_URL`) and are audited:

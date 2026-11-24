@@ -61,8 +61,8 @@ export function PlanCards() {
 }
 
 export const FAQ_ITEMS: Array<[string, string]> = [
-  ['How do I get started?', 'Pick a plan and tell us about your company. We email you a secure payment link. Once payment is confirmed we create your company and send an invitation; you sign in and start adding people.'],
-  ['Do I have to pay before I can sign in?', 'Yes. Companies are created after payment is confirmed, so there is no unpaid free-for-all. Customize plans start with a conversation about what you need.'],
+  ['How do I get started?', 'Sign in with Google, choose a plan and name your company. Your company is created straight away and you can start adding people.'],
+  ['Do I have to pay to start?', 'No. The Free plan is free for small teams, and Pro and Customize begin with a 14-day trial. No card is needed to sign up.'],
   ['Can I change plans later?', 'Yes. Ask us and we move you up or down; your data stays exactly where it is.'],
   ['Is it built for Indian payroll?', 'Amounts are in rupees, dates and cut-offs follow India time, and statutory rules (PF, ESI, professional tax, TDS and so on) are set up as data and approved by a second person before they are used. We do not ship hidden defaults.'],
   ['How is our data protected?', 'Every company is isolated at the database level. Sensitive identifiers are encrypted, every change is recorded in an audit log, and payroll needs a second person to approve.'],

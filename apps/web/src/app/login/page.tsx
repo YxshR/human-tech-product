@@ -53,7 +53,7 @@ export default async function Login({ searchParams }: PageProps) {
         ) : (
           <a className="btn primary" href={href} style={{ width: '100%', justifyContent: 'center', padding: '12px 16px', marginTop: 8 }}>Sign in <Icon name="arrowRight" size={16} /></a>
         ))}
-        <p className="muted" style={{ fontSize: 12.5, marginTop: 18 }}>Signing in with your company account. Joining a company? Ask your administrator for an invitation.</p>
+        <p className="muted" style={{ fontSize: 12.5, marginTop: 18 }}>Joining an existing company? Ask your administrator for an invitation. Starting a new one? Choose “Get started” below.</p>
         <p style={{ fontSize: 13.5, margin: '10px 0 0' }}>New here? <Link href="/signup">Get started</Link> · <Link href="/pricing">See plans</Link> · <Link href="/">Home</Link></p>
       </main>
     </div>
