@@ -4,6 +4,7 @@ import { DEV_ACCOUNTS, devLoginEnabled } from '@/lib/dev-login';
 import { safeReturnTo } from '@/lib/pkce';
 import { Icon } from '@/components/icons';
 import type { PageProps } from '@/lib/data';
+import { readAuthMsg } from '@/lib/session';
 
 export const metadata = { title: 'Sign in' };
 export const dynamic = 'force-dynamic';
@@ -25,7 +26,8 @@ export default async function Login({ searchParams }: PageProps) {
   const missing = dev ? [] : missingConfig();
   const returnTo = safeReturnTo(sp.returnTo);
   const href = `/auth/login?returnTo=${encodeURIComponent(returnTo)}`;
-  const error = sp.error ? (MESSAGES[sp.error] ?? 'Something went wrong. Please try again.') : null;
+  const error = sp.error ? (MESSAGES[sp.error] ?? 'Something went wrong. Please try again.') : ((await readAuthMsg()) ?? null);
+  const sso = missing.length === 0;
   return (
     <div className="auth-wrap">
       <main className="card" id="main">
@@ -33,31 +35,29 @@ export default async function Login({ searchParams }: PageProps) {
         <h1>Sign in to human<span style={{ color: 'var(--brand)' }}>Tech</span></h1>
         <p className="muted">Your company&apos;s people, attendance, leave and payroll in one place.</p>
         {error && <div className="flash err" role="alert" style={{ marginTop: 14 }}><Icon name="alert" size={18} /><div><strong>We could not sign you in</strong><span>{error}</span></div></div>}
-        {dev && (
-          <form action="/auth/dev" method="post" className="form" style={{ marginTop: 16 }}>
-            <input type="hidden" name="returnTo" value={returnTo} />
-            <span className="site-pill warn" style={{ justifySelf: 'start' }}>Developer sign-in · this computer only</span>
-            <label>Email<input name="email" type="email" required defaultValue="owner@demo.test" autoComplete="username" /></label>
-            <label>Password<input name="password" type="password" required defaultValue="Demo@12345" autoComplete="current-password" /></label>
-            <button className="btn primary lg block">Sign in</button>
-            <div className="divider">or sign in as a demo role in one click</div>
-            <div className="quick-grid">{DEV_ACCOUNTS.map((a) => <button key={a.email} className="btn sm" name="quickEmail" value={a.email} formNoValidate formAction="/auth/dev?quick=1" type="submit"><span>{a.role}</span><small className="muted">{a.email.split('@')[0]}</small></button>)}</div>
-          </form>
-        )}
-        {!dev && (missing.length > 0 ? (
-          <div className="flash warn" role="alert" style={{ marginTop: 16 }}>
-            <strong>Sign-in is not set up on this site yet.</strong>
-            <p style={{ margin: '6px 0' }}>If you run this site: add these environment variables where the web app is hosted, then redeploy.</p>
-            <ul className="plain-list">{missing.map((m) => <li key={m}><code>{m}</code></li>)}</ul>
-          </div>
-        ) : (
+        <form action="/auth/password" method="post" className="form" style={{ marginTop: 16 }}>
+          <input type="hidden" name="returnTo" value={returnTo} />
+          {dev && <span className="site-pill warn" style={{ justifySelf: 'start' }}>Demo accounts work on this computer only</span>}
+          <label>Email<input name="email" type="email" required defaultValue={dev ? 'owner@demo.test' : ''} autoComplete="username" /></label>
+          <label>Password<input name="password" type="password" required defaultValue={dev ? 'Demo@12345' : ''} autoComplete="current-password" /></label>
+          <button className="btn primary lg block">Sign in</button>
+          <p className="hint" style={{ textAlign: 'center' }}><strong style={{ color: 'var(--text)' }}>First time, with a login code from your company?</strong> <Link href="/activate">Set up your password</Link></p>
+          {dev && (
+            <>
+              <div className="divider">or sign in as a demo role in one click</div>
+              <div className="quick-grid">{DEV_ACCOUNTS.map((a) => <button key={a.email} className="btn sm" name="quickEmail" value={a.email} formNoValidate formAction="/auth/dev?quick=1" type="submit"><span>{a.role}</span><small className="muted">{a.email.split('@')[0]}</small></button>)}</div>
+            </>
+          )}
+        </form>
+        {!dev && sso && (
           <>
-            <a className="btn primary lg block" href={href} style={{ marginTop: 20 }}>Continue to sign in <Icon name="arrowRight" size={16} /></a>
-            <p className="hint" style={{ textAlign: 'center', marginTop: 10 }}>You sign in with your work account. We never see your password.</p>
+            <div className="divider">or</div>
+            <a className="btn lg block" href={href}>Sign in with your work account <Icon name="arrowRight" size={16} /></a>
+            <p className="hint" style={{ textAlign: 'center', marginTop: 10 }}>For companies that sign in through Google or another work account.</p>
           </>
-        ))}
+        )}
         <div className="auth-foot">
-          <span><strong style={{ color: 'var(--text)' }}>Joining your company?</strong> Use the link in your invitation email. No invitation? Ask your administrator to send one.</span>
+          <span><strong style={{ color: 'var(--text)' }}>Forgot your password?</strong> Ask your HR or company administrator to help you sign in again.</span>
           <span><strong style={{ color: 'var(--text)' }}>Setting up a new company?</strong> <Link href="/signup">Get started free</Link> · <Link href="/pricing">See plans</Link></span>
         </div>
       </main>

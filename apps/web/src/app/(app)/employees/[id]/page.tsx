@@ -1,12 +1,13 @@
 
 import {
   DOCUMENT_TYPES, GENDERS, IDENTIFIER_PATTERNS, IDENTIFIER_TYPES, MARITAL, EMPLOYMENT_TYPES,
-  type BankView, type BranchView, type DocumentView, type EmergencyContactView, type EmployeeView, type ExitView, type IdentifierView, type OrgItemView, type PersonalView, type TaskView,
+  type BankView, type BranchView, type InvitationView, type RoleView, type DocumentView, type EmergencyContactView, type EmployeeView, type ExitView, type IdentifierView, type OrgItemView, type PersonalView, type TaskView,
 } from '@humantech/contracts';
 import { uploadDocument } from '@/lib/actions';
 import { can, load, loadOr404, options, type PageProps } from '@/lib/data';
 import { ActionButton, ActionForm, Avatar, Callout, Card, Details, Empty, Fields, KV, Page, Pill, Table, Tabs, dash, fmtDate, fmtDateTime, humanize, type FieldSpec, NoAccess } from '@/components/ui';
 import { SubmitButton } from '@/components/submit-button';
+import { LoginCodePanel } from '@/components/login-code';
 import { SalaryTab, LeaveTab } from './more-tabs';
 import { CustomTab } from './custom-tab';
 
@@ -37,9 +38,14 @@ export default async function EmployeePage({ params, searchParams }: PageProps<{
 }
 
 async function Overview({ e, back }: { e: EmployeeView; back: string }) {
-  const edit = await can('employee.update'); const archive = await can('employee.archive'); const manageLogin = await can('user.manage');
-  const users = manageLogin ? ((await load<Array<{ userId: string; email: string; status: string; employeeId: string | null }>>('/access/users')) ?? []) : [];
+  const edit = await can('employee.update'); const archive = await can('employee.archive'); const manageLogin = await can('user.manage'); const issueLogin = await can('employee.issue_login');
+  const users = manageLogin || issueLogin ? ((await load<Array<{ userId: string; email: string; status: string; employeeId: string | null }>>('/access/users')) ?? []) : [];
   const linked = users.find((u) => u.employeeId === e.id);
+  const waiting = issueLogin ? ((await load<InvitationView[]>('/access/invitations')) ?? []).find((i) => i.employeeId === e.id && i.status === 'pending' && i.kind !== 'link') : undefined;
+  // Choosing a role other than Employee is a grant of power: only people who manage roles are offered it.
+  const roleChoices = issueLogin && (await can('role.manage')) ? ((await load<RoleView[]>('/access/roles')) ?? []).map((r) => [r.key, r.name] as [string, string]) : undefined;
+  const fullName = `${e.firstName} ${e.lastName ?? ''}`.trim();
+  const appUrl = process.env.APP_URL ?? '';
   const branches = (await load<BranchView[]>('/branches')) ?? []; const departments = (await load<OrgItemView[]>('/org/departments')) ?? []; const designations = (await load<OrgItemView[]>('/org/designations')) ?? [];
   const fields: FieldSpec[] = [
     { name: 's:firstName', label: 'First name', value: e.firstName, required: true }, { name: 's:lastName', label: 'Last name', value: e.lastName ?? '' }, { name: 's:workEmail', label: 'Work email', kind: 'email', value: e.workEmail ?? '' },
@@ -55,12 +61,41 @@ async function Overview({ e, back }: { e: EmployeeView; back: string }) {
       <Card title="At a glance">
         <KV items={[['Status', <Pill key="s">{e.employmentStatus}</Pill>], ['Employment type', humanize(e.employmentType)], ['Branch', branches.find((b) => b.id === e.branchId)?.name ?? '—'], ['Department', departments.find((d) => d.id === e.departmentId)?.name ?? '—'], ['Work email', dash(e.workEmail)], ...(e.phone !== undefined ? [['Phone', dash(e.phone)] as [string, string]] : []), ...(e.personalEmail !== undefined ? [['Personal email', dash(e.personalEmail)] as [string, string]] : [])]} />
       </Card>
-      {manageLogin && !['archived', 'exited'].includes(e.employmentStatus) && (
-        <Card title="Sign-in" desc="Linking a sign-in lets this person see their own profile, leave, attendance and payslips.">
+      {(manageLogin || issueLogin) && !['archived', 'exited'].includes(e.employmentStatus) && (
+        <Card title="Sign-in" desc={linked ? `${e.firstName} can sign in and see their own profile, attendance, leave and payslips.` : `Give ${e.firstName} a way to sign in. They will see their own profile, attendance, leave and payslips: nobody else's.`}>
           {linked ? (
             <>
-              <Callout tone="ok"><p>Linked to <strong>{linked.email}</strong>. They can sign in and see their own records.</p></Callout>
-              <ActionButton method="PUT" path={`/employees/${e.id}/login`} back={back} ok="Sign-in unlinked" values={{ 'z:userId': '' }} button="Unlink sign-in" tone="danger" confirm={`Unlink ${linked.email}? They will no longer see their own leave, attendance or payslips. Their account is not deleted.`} />
+              <Callout tone="ok"><p>{e.firstName} signs in with <strong>{linked.email}</strong>.</p></Callout>
+              {waiting && <Callout tone="warn" title="A password reset code is waiting to be used"><p>It stops working on {fmtDateTime(waiting.expiresAt)}. Creating a new one cancels it.</p></Callout>}
+              {issueLogin && (
+                <Details summary={`${e.firstName} forgot their password?`}>
+                  <p className="muted" style={{ marginBottom: 12 }}>Create a one-time code. {e.firstName} enters it on the “Set up your sign-in” page and chooses a new password. Their old password keeps working until then.</p>
+                  <LoginCodePanel mode="reset" employeeId={e.id} name={e.firstName} appUrl={appUrl} />
+                </Details>
+              )}
+              {manageLogin && <ActionButton method="PUT" path={`/employees/${e.id}/login`} back={back} ok="Sign-in unlinked" values={{ 'z:userId': '' }} button="Unlink sign-in" tone="danger" confirm={`Unlink ${linked.email}? They will no longer see their own leave, attendance or payslips. Their account is not deleted.`} />}
+            </>
+          ) : issueLogin ? (
+            <>
+              <ol className="steps-inline">
+                <li><b>1.</b> You enter {e.firstName}&rsquo;s e-mail address and get a one-time login code.</li>
+                <li><b>2.</b> You give {e.firstName} the sign-in page address, the e-mail and the code.</li>
+                <li><b>3.</b> {e.firstName} enters them once and chooses their own password. After that the code no longer works.</li>
+              </ol>
+              {waiting && (
+                <Callout tone="warn" title={`A login code for ${waiting.email} is waiting to be used`}>
+                  <p>It stops working on {fmtDateTime(waiting.expiresAt)}. The code itself cannot be shown again: if it was lost, create a new one below (that cancels this one).</p>
+                  <div className="row"><ActionButton path={`/access/login-codes/${waiting.id}/revoke`} back={back} ok="Login code cancelled" button="Cancel this code" tone="danger" confirm={`Cancel the login code for ${waiting.email}? ${e.firstName} will not be able to use it.`} /></div>
+                </Callout>
+              )}
+              <LoginCodePanel mode="new" employeeId={e.id} name={e.firstName} defaultEmail={waiting?.email ?? e.workEmail ?? ''} roles={roleChoices} appUrl={appUrl} />
+              {manageLogin && users.some((u) => u.status === 'active' && !u.employeeId) && (
+                <Details summary={`${fullName} can already sign in? Link that sign-in instead`}>
+                  <ActionForm method="PUT" path={`/employees/${e.id}/login`} back={back} ok="Sign-in linked" button="Link sign-in" fields={[
+                    { name: 's:userId', label: 'Which user is this person?', kind: 'select', required: true, options: users.filter((u) => u.status === 'active' && !u.employeeId).map((u) => [u.userId, u.email]), hint: 'Only users who are not linked to another employee are listed.' },
+                  ]} />
+                </Details>
+              )}
             </>
           ) : users.some((u) => u.status === 'active' && !u.employeeId) ? (
             <ActionForm method="PUT" path={`/employees/${e.id}/login`} back={back} ok="Sign-in linked" button="Link sign-in" fields={[

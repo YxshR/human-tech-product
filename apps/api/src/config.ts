@@ -9,6 +9,10 @@ const schema = z.object({
   OIDC_AUDIENCE: z.string().min(1),
   /** Defaults to `${OIDC_ISSUER}/.well-known/jwks.json`. */
   OIDC_JWKS_URI: z.string().url().optional(),
+  /** JSON of an RSA private key (JWK). When set, people can sign in with e-mail + password; unset switches that off. */
+  LOCAL_AUTH_PRIVATE_KEY: z.string().min(1).optional(),
+  /** Issuer written into password-session tokens. Must differ from OIDC_ISSUER. */
+  LOCAL_AUTH_ISSUER: z.string().min(1).default('humantech-password'),
   CORS_ORIGINS: z.string().default('').transform((s) => s.split(',').map((x) => x.trim()).filter(Boolean)),
   BODY_LIMIT: z.string().default('100kb'),
   /** "id:base64key[,id:base64key...]" — the FIRST key encrypts, all keys decrypt (rotation). 32-byte keys, ids 1-255. */
@@ -38,6 +42,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   }
   if (parsed.data.STORAGE_DRIVER === 's3' && !(parsed.data.S3_BUCKET && parsed.data.S3_ACCESS_KEY && parsed.data.S3_SECRET_KEY)) {
     throw new Error('Invalid configuration: STORAGE_DRIVER=s3 needs S3_BUCKET, S3_ACCESS_KEY and S3_SECRET_KEY');
+  }
+  if (parsed.data.LOCAL_AUTH_ISSUER === parsed.data.OIDC_ISSUER) {
+    throw new Error('Invalid configuration: LOCAL_AUTH_ISSUER must differ from OIDC_ISSUER');
   }
   if (parsed.data.NODE_ENV === 'production' && parsed.data.CORS_ORIGINS.includes('*')) {
     throw new Error('Invalid configuration: CORS_ORIGINS must not contain * in production');

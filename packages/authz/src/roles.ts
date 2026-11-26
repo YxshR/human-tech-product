@@ -56,7 +56,7 @@ export const ROLES: Record<RoleKey, RoleDefinition> = {
       'user.read', 'user.invite', 'user.manage', 'role.read', 'role.manage', 'support.grant_access',
       'branch.read', 'branch.create', 'branch.update', 'branch.assign_manager',
       'org.read', 'org.manage',
-      'employee.read', 'employee.create', 'employee.update', 'employee.archive', 'employee.exit',
+      'employee.read', 'employee.create', 'employee.update', 'employee.archive', 'employee.exit', 'employee.issue_login',
       'employee.read_sensitive', 'employee.update_sensitive', 'employee.export',
       'onboarding.read', 'onboarding.manage', 'document.read', 'document.upload', 'document.delete',
       'candidate.read', 'candidate.create', 'candidate.update', 'candidate.change_stage', 'candidate.convert',
@@ -78,7 +78,7 @@ export const ROLES: Record<RoleKey, RoleDefinition> = {
     requiresMfa: true,
     permissions: [
       'tenant.read', 'branch.read', 'org.read', 'org.manage',
-      'employee.read', 'employee.create', 'employee.update', 'employee.archive', 'employee.exit',
+      'employee.read', 'employee.create', 'employee.update', 'employee.archive', 'employee.exit', 'employee.issue_login',
       'employee.read_sensitive', 'employee.update_sensitive', 'employee.read_identifiers', 'employee.export',
       'onboarding.read', 'onboarding.manage', 'document.read', 'document.upload', 'document.delete',
       'attendance.read', 'attendance.mark', 'attendance.correct', 'attendance.approve_correction',

@@ -32,6 +32,15 @@ export class AccessController {
     const { invitation, token } = await this.svc.invite(req.auth!, body, key?.slice(0, 100));
     return { data: { ...invitation, acceptToken: token } };
   }
+  /** The login code is returned ONCE; the company hands it to the employee with the sign-in address. */
+  @Post('login-codes') @HttpCode(201) @RequirePermission('employee.issue_login')
+  async issueLoginCode(@Req() req: Request, @Body() body: unknown) { return { data: await this.svc.issueLoginCode(req.auth!, body) }; }
+  /** Forgotten password: a one-time code with which the employee chooses a new password. */
+  @Post('password-resets') @HttpCode(201) @RequirePermission('employee.issue_login')
+  async issuePasswordReset(@Req() req: Request, @Body() body: unknown) { return { data: await this.svc.issuePasswordReset(req.auth!, body) }; }
+  /** Withdraw a login code that has not been used yet. */
+  @Post('login-codes/:id/revoke') @HttpCode(204) @RequirePermission('employee.issue_login')
+  async revokeLoginCode(@Req() req: Request, @Param('id', uuidParam) id: string) { await this.svc.revokeInvitation(req.auth!, id, 'code'); }
   @Post('invitations/:id/revoke') @HttpCode(204) @RequirePermission('user.invite')
   async revoke(@Req() req: Request, @Param('id', uuidParam) id: string) { await this.svc.revokeInvitation(req.auth!, id); }
   /** Invitee redeems a token; works before any company is selected. */

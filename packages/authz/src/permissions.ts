@@ -44,6 +44,7 @@ export const PERMISSIONS = defs({
   'employee.update': { description: 'Edit employee records' },
   'employee.archive': { description: 'Archive employees' },
   'employee.exit': { description: 'Start and complete offboarding', sensitivity: 'sensitive' },
+  'employee.issue_login': { description: 'Create a login code so an employee can sign in', sensitivity: 'sensitive' },
   'employee.read_sensitive': { description: 'View DOB, address and other personal details', sensitivity: 'sensitive' },
   'employee.update_sensitive': { description: 'Edit personal details', sensitivity: 'sensitive' },
   'employee.read_identifiers': { description: 'View masked statutory identifiers (PAN/UAN/ESIC)', sensitivity: 'sensitive' },
