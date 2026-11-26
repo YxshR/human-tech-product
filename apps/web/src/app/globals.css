@@ -384,3 +384,9 @@ dialog::backdrop { background: rgba(9, 11, 22, .5); backdrop-filter: blur(3px); 
 
 .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .quick-grid .btn { flex-direction: column; align-items: flex-start; gap: 0; text-align: left; padding: 8px 12px; box-shadow: none; } .quick-grid small { font-size: 11.5px; font-weight: 450; }
 @media (max-width: 420px) { .quick-grid { grid-template-columns: 1fr; } }
+
+/* Login codes: what to hand over to the employee */
+.handover { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; align-items: center; } .handover dt { color: var(--text-2); font-size: 13px; } .handover dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.handover code { font-size: 13.5px; user-select: all; } .handover code.big { font-size: 18px; font-weight: 700; letter-spacing: 0.1em; padding: 4px 10px; }
+.steps-inline { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 6px; color: var(--text-2); font-size: 14px; } .steps-inline b { color: var(--brand); margin-right: 4px; }
+@media (max-width: 520px) { .handover { grid-template-columns: 1fr; gap: 2px; } .handover dd { margin-bottom: 8px; } }

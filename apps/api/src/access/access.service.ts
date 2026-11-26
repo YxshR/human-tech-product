@@ -1,16 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
 import type { PoolClient } from 'pg';
-import { PERMISSION_KEYS, isPermissionKey } from '@humantech/authz';
-import { AccessUserView, InvitationView, RoleView, acceptInvitation, createRole, inviteUser, setBranchScope, setUserRoles, updateRole } from '@humantech/contracts';
+import { PERMISSION_KEYS, isPermissionKey, requireMfaForCritical } from '@humantech/authz';
+import { AccessUserView, InvitationView, LoginCodeIssued, RoleView, acceptInvitation, issueLoginCode, issuePasswordReset, createRole, inviteUser, setBranchScope, setUserRoles, updateRole } from '@humantech/contracts';
 import { PostgresJobProducer } from '@humantech/jobs';
 import { Database } from '../db';
 import { RequestAuth } from '../auth/auth-context';
 import { AuditService } from '../common/audit';
 import { ApiError, forbidden, notFound } from '../common/errors';
 import { setClause } from '../common/sql';
+import { employeeFor } from '../common/employee-access';
+import { loginCodeHash, newLoginCode } from '../auth/local-auth';
 
 const INVITE_TTL_MS = 7 * 24 * 3600 * 1000;
+const RESET_TTL_MS = 24 * 3600 * 1000;
 const sha = (s: string) => createHash('sha256').update(s).digest();
 const ctxOf = (a: RequestAuth, reason?: string) => ({ tenantId: a.tenantId, userId: a.userId, reason });
 
@@ -51,11 +54,11 @@ export class AccessService {
     return this.db.run(ctxOf(a), async (c) => (await c.query(
       `SELECT i.id, i.email_normalized AS email,
               CASE WHEN i.status='pending' AND i.expires_at < now() THEN 'expired' ELSE i.status END AS status,
-              to_char(i.expires_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS expires_at, i.branch_scope_mode,
+              to_char(i.expires_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS expires_at, i.branch_scope_mode, i.kind, i.employee_id,
               COALESCE((SELECT array_agg(r.role_key ORDER BY r.role_key) FROM invitation_roles ir JOIN roles r ON r.tenant_id=ir.tenant_id AND r.id=ir.role_id WHERE ir.tenant_id=i.tenant_id AND ir.invitation_id=i.id), '{}') AS role_keys,
               COALESCE((SELECT array_agg(b.branch_id) FROM invitation_branch_scopes b WHERE b.tenant_id=i.tenant_id AND b.invitation_id=i.id), '{}') AS branches
          FROM invitations i WHERE i.tenant_id=$1 ORDER BY i.created_at DESC LIMIT 200`, [a.tenantId])).rows
-      .map((r) => ({ id: r.id, email: r.email, status: r.status, expiresAt: r.expires_at, roleKeys: r.role_keys, branchScope: r.branch_scope_mode === 'all' ? ('all' as const) : (r.branches as string[]) })));
+      .map((r) => ({ id: r.id, email: r.email, status: r.status, expiresAt: r.expires_at, roleKeys: r.role_keys, branchScope: r.branch_scope_mode === 'all' ? ('all' as const) : (r.branches as string[]), kind: r.kind, employeeId: r.employee_id })));
   }
 
   // ---- helpers ---------------------------------------------------------------------------------
@@ -116,14 +119,85 @@ export class AccessService {
       await this.audit.record(c, a, 'invitation.create', 'invitations', inv.id, null, { email: b.email, roleKeys: b.roleKeys, branchScope: b.branchScope });
       return {
         token,
-        invitation: { id: inv.id, email: b.email, status: 'pending', expiresAt: expires.toISOString(), roleKeys: [...b.roleKeys].sort(), branchScope: b.branchScope },
+        invitation: { id: inv.id, email: b.email, status: 'pending', expiresAt: expires.toISOString(), roleKeys: [...b.roleKeys].sort(), branchScope: b.branchScope, kind: 'link', employeeId: null },
       };
     });
   }
 
-  async revokeInvitation(a: RequestAuth, id: string): Promise<void> {
+  /**
+   * A login code for one employee: the company hands over the sign-in address, the e-mail and this code; the person then
+   * chooses their own password (see migration 0015). The code is returned ONCE and only its hash is kept.
+   * Anyone who may issue codes can give the Employee role (self-service on that one record). Any other role is a grant of
+   * power, so it needs `role.manage` and a session with a second factor, exactly like changing roles does.
+   */
+  async issueLoginCode(a: RequestAuth, body: unknown): Promise<LoginCodeIssued> {
+    const b = issueLoginCode.parse(body);
+    const roleKeys = [...new Set(b.roleKeys ?? ['employee'])].sort();
+    const selfServiceOnly = roleKeys.length === 1 && roleKeys[0] === 'employee';
+    if (!selfServiceOnly) {
+      if (!a.permissions.has('role.manage')) throw forbidden('Only someone who manages roles can give a role other than Employee');
+      if (!requireMfaForCritical(a, 'critical').allowed) throw new ApiError('mfa_required', 403, 'Giving a role other than Employee requires multi-factor authentication');
+    }
+    const code = newLoginCode();
+    return this.db.run(ctxOf(a, 'login code issued'), async (c) => {
+      const e = await employeeFor(c, a, b.employeeId, 'employee.issue_login', {}, true);
+      if (['archived', 'exited'].includes(e.employment_status)) throw new ApiError('invalid_state', 409, `A ${e.employment_status} employee cannot be given a login`);
+      if (e.user_id) throw new ApiError('conflict', 409, 'This employee already has a login');
+      const ids = await this.roleIds(c, a.tenantId, roleKeys);
+      const member = await c.query(
+        `SELECT 1 FROM tenant_memberships m JOIN users u ON u.id=m.user_id WHERE m.tenant_id=$1 AND u.email_normalized=$2 AND m.status IN ('active','suspended')`, [a.tenantId, b.email]);
+      if (member.rowCount) throw new ApiError('conflict', 409, 'Someone with this e-mail address can already sign in to this company. Link that person to the employee instead.');
+      // A new code replaces any earlier one for this person or this address.
+      await c.query(`UPDATE invitations SET status='revoked' WHERE tenant_id=$1 AND status='pending' AND (email_normalized=$2 OR employee_id=$3)`, [a.tenantId, b.email, b.employeeId]);
+      // Self-service needs no branch; other roles see the issuer's branches at most.
+      const scopeAll = !selfServiceOnly && a.branchScope.mode === 'all';
+      const branches = selfServiceOnly ? (e.branch_id ? [e.branch_id] : []) : a.branchScope.mode === 'all' ? [] : [...a.branchScope.branchIds];
+      const expires = new Date(Date.now() + INVITE_TTL_MS);
+      const inv = (await c.query<{ id: string }>(
+        `INSERT INTO invitations (tenant_id, email_normalized, token_hash, branch_scope_mode, invited_by, idempotency_key, expires_at, kind, employee_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'code',$8) RETURNING id`,
+        [a.tenantId, b.email, loginCodeHash(b.email, code), scopeAll ? 'all' : 'listed', a.userId, randomBytes(16).toString('hex'), expires, b.employeeId])).rows[0]!;
+      for (const k of roleKeys) await c.query('INSERT INTO invitation_roles (tenant_id, invitation_id, role_id) VALUES ($1,$2,$3)', [a.tenantId, inv.id, ids.get(k)]);
+      for (const br of branches) await c.query('INSERT INTO invitation_branch_scopes (tenant_id, invitation_id, branch_id) VALUES ($1,$2,$3)', [a.tenantId, inv.id, br]);
+      await this.audit.record(c, a, 'login_code.issue', 'invitations', inv.id, null, { email: b.email, employeeId: b.employeeId, roleKeys });
+      return { invitationId: inv.id, employeeId: b.employeeId, email: b.email, code, expiresAt: expires.toISOString(), roleKeys };
+    });
+  }
+
+  /**
+   * Forgotten password: a one-time code that lets the employee choose a new password on the first-sign-in screen.
+   * Whoever holds the code can take over the account, so resetting someone who has more than the Employee role is
+   * reserved for people who may manage memberships (and have a second factor).
+   */
+  async issuePasswordReset(a: RequestAuth, body: unknown): Promise<LoginCodeIssued> {
+    const b = issuePasswordReset.parse(body);
+    const code = newLoginCode();
+    return this.db.run(ctxOf(a, 'password reset code issued'), async (c) => {
+      const e = await employeeFor(c, a, b.employeeId, 'employee.issue_login', {}, true);
+      if (!e.user_id) throw new ApiError('invalid_state', 409, 'This employee has no login yet. Create a login code instead.');
+      if (e.user_id === a.userId) throw forbidden('You cannot reset your own password this way');
+      const u = (await c.query<{ email: string; status: string }>(
+        `SELECT u.email_normalized AS email, m.status FROM tenant_memberships m JOIN users u ON u.id=m.user_id WHERE m.tenant_id=$1 AND m.user_id=$2`, [a.tenantId, e.user_id])).rows[0];
+      if (!u || u.status !== 'active') throw new ApiError('invalid_state', 409, 'This person\'s access to the company is not active');
+      const roles = (await c.query<{ role_key: string }>(
+        'SELECT r.role_key FROM membership_roles mr JOIN roles r ON r.tenant_id=mr.tenant_id AND r.id=mr.role_id WHERE mr.tenant_id=$1 AND mr.user_id=$2', [a.tenantId, e.user_id])).rows.map((r) => r.role_key);
+      if (roles.some((k) => k !== 'employee') && !(a.permissions.has('user.manage') && requireMfaForCritical(a, 'critical').allowed)) {
+        throw forbidden('This person has more than the Employee role. Only a company administrator signed in with multi-factor authentication can reset their password.');
+      }
+      await c.query(`UPDATE invitations SET status='revoked' WHERE tenant_id=$1 AND status='pending' AND (email_normalized=$2 OR employee_id=$3)`, [a.tenantId, u.email, b.employeeId]);
+      const expires = new Date(Date.now() + RESET_TTL_MS);
+      const inv = (await c.query<{ id: string }>(
+        `INSERT INTO invitations (tenant_id, email_normalized, token_hash, branch_scope_mode, invited_by, idempotency_key, expires_at, kind, employee_id)
+         VALUES ($1,$2,$3,'listed',$4,$5,$6,'reset',$7) RETURNING id`,
+        [a.tenantId, u.email, loginCodeHash(u.email, code), a.userId, randomBytes(16).toString('hex'), expires, b.employeeId])).rows[0]!;
+      await this.audit.record(c, a, 'login_code.issue_reset', 'invitations', inv.id, null, { email: u.email, employeeId: b.employeeId });
+      return { invitationId: inv.id, employeeId: b.employeeId, email: u.email, code, expiresAt: expires.toISOString(), roleKeys: roles.sort() };
+    });
+  }
+
+  async revokeInvitation(a: RequestAuth, id: string, kind?: 'link' | 'code'): Promise<void> {
     await this.db.run(ctxOf(a), async (c) => {
-      const r = await c.query(`UPDATE invitations SET status='revoked' WHERE tenant_id=$1 AND id=$2 AND status='pending' RETURNING email_normalized`, [a.tenantId, id]);
+      const r = await c.query(`UPDATE invitations SET status='revoked' WHERE tenant_id=$1 AND id=$2 AND status='pending' AND ($3::text IS NULL OR ($3='code' AND kind IN ('code','reset')) OR kind=$3) RETURNING email_normalized`, [a.tenantId, id, kind ?? null]);
       if (!r.rowCount) throw notFound('pending invitation');
       await this.audit.record(c, a, 'invitation.revoke', 'invitations', id, { email: r.rows[0].email_normalized }, null);
     });

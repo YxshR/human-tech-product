@@ -16,3 +16,9 @@ export const tenantCookie = (id: string) => ({ name: TENANT_COOKIE, value: id, .
 export const REFRESH_COOKIE = 'ht_refresh';
 /** Only sent to /auth/* routes, never to pages or the API. */
 export const refreshCookie = (token: string) => ({ name: REFRESH_COOKIE, value: token, ...base(), path: '/auth', maxAge: 60 * 60 * 24 * 30 });
+/** A one-off message for the sign-in pages (why it did not work). Kept out of the address bar; gone after half a minute. */
+export const AUTH_MSG_COOKIE = 'ht_auth_msg';
+export const authMsgCookie = (message: string) => ({ name: AUTH_MSG_COOKIE, value: message.slice(0, 300), ...base(), maxAge: 30 });
+export async function readAuthMsg(): Promise<string | undefined> {
+  return (await cookies()).get(AUTH_MSG_COOKIE)?.value;
+}

@@ -9,7 +9,7 @@
  */
 import { spawn, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { randomBytes } from 'node:crypto';
+import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import os from 'node:os';
@@ -43,6 +43,8 @@ function ensureEnv() {
   if (!cur.FIELD_ENCRYPTION_KEYS || /REPLACE_WITH/.test(cur.FIELD_ENCRYPTION_KEYS)) set('FIELD_ENCRYPTION_KEYS', `1:${b64()}`, true);
   if (!cur.BLIND_INDEX_KEY || /REPLACE_WITH/.test(cur.BLIND_INDEX_KEY)) set('BLIND_INDEX_KEY', b64(), true);
   if (!cur.FILE_SIGNING_SECRET || /replace-with/.test(cur.FILE_SIGNING_SECRET)) set('FILE_SIGNING_SECRET', randomBytes(32).toString('hex'), true);
+  // Key the API signs e-mail + password sessions with. Without it that way of signing in is off.
+  if (!cur.LOCAL_AUTH_PRIVATE_KEY) set('LOCAL_AUTH_PRIVATE_KEY', JSON.stringify(generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey.export({ format: 'jwk' })), true);
   set('DATABASE_NAME', 'humantech'); set('DB_OWNER_PASSWORD', 'owner_dev_password'); set('DB_APP_PASSWORD', 'app_dev_password'); set('DB_SYSTEM_PASSWORD', 'system_dev_password');
   set('DATABASE_ADMIN_URL', 'postgresql://postgres:postgres@localhost:5432/postgres'); set('OPERATOR_EMAIL', 'dev@demo.test');
   writeFileSync('.env', text);
@@ -81,6 +83,8 @@ if (outOfDate || flags.has('--rebuild')) {
 }
 const cli = (args) => { const r = spawnSync('node', ['packages/database/dist/cli.js', ...args], { env, encoding: 'utf8' }); if (r.status !== 0) die(`${args[0]} failed:\n${r.stdout}${r.stderr}`); return r.stdout.trim(); };
 log('Preparing the database …'); cli(['bootstrap']); console.log('  ' + cli(['migrate'])); console.log('  ' + cli(['seed']));
+// Existing companies pick up permissions added to the built-in roles since they were created.
+console.log('  ' + cli(['sync-roles']));
 
 // ---------- 2b. free the ports ----------
 // A leftover API/web from an earlier run keeps the port, so the new one cannot start and sign-in then fails (the old API
@@ -128,6 +132,7 @@ if (!flags.has('--no-demo')) { log('Creating the demo company …'); const r = s
 console.log(`\n\x1b[1m\x1b[32m✔ humanTech is running\x1b[0m
   Open       http://localhost:3000        (home page, plans, sign-up)
   Sign in    http://localhost:3000/login  →  e-mail + password, or click a role button
+  New login  http://localhost:3000/activate  →  e-mail + login code from an employee's page, then choose a password
   Accounts   owner@demo.test  hr@demo.test  finance@demo.test  approver@demo.test  recruiter@demo.test  manager@demo.test  employee@demo.test
   Password   ${env.DEV_LOGIN_PASSWORD ?? 'Demo@12345'}
   Stop       Ctrl+C\n`);

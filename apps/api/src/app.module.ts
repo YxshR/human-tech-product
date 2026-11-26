@@ -42,6 +42,8 @@ import { ReportsService } from './platform/reports.service';
 import { FieldCrypto } from './security/field-crypto';
 import { OrgController } from './org/org.controller';
 import { OrgService } from './org/org.service';
+import { LOCAL_AUTH, LocalAuth } from './auth/local-auth';
+import { PasswordController } from './auth/password.controller';
 
 function storageFor(config: AppConfig): FileStorage {
   return buildStorage(config.STORAGE_DRIVER === 's3'
@@ -51,13 +53,14 @@ function storageFor(config: AppConfig): FileStorage {
 
 @Module({})
 export class AppModule {
-  static register(config: AppConfig, verifier: TokenVerifier): DynamicModule {
+  static register(config: AppConfig, verifier: TokenVerifier, local: LocalAuth): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, MeController, EmployeesController, OrgController, AccessController, LeaveController, AttendanceController, CompensationController, PayrollController, MePayslipsController, ProfileController, DocumentsController, OnboardingController, RecruitmentController, PlatformController, ImportsController, SettingsController, SignupController],
+      controllers: [HealthController, MeController, EmployeesController, OrgController, AccessController, LeaveController, AttendanceController, CompensationController, PayrollController, MePayslipsController, ProfileController, DocumentsController, OnboardingController, RecruitmentController, PlatformController, ImportsController, SettingsController, SignupController, PasswordController],
       providers: [
         { provide: Database, useValue: new Database(config.DATABASE_URL, config.DATABASE_POOL_MAX) },
         { provide: TOKEN_VERIFIER, useValue: verifier },
+        { provide: LOCAL_AUTH, useValue: local },
         AuditService,
         EmployeesService,
         OrgService,

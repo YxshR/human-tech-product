@@ -122,7 +122,7 @@ describe('schema lint', () => {
        ORDER BY 1`);
     const names = rows.map((r) => r.relname as string);
     const allowed = new Set([
-      'tenants', 'users', 'user_sessions', 'platform_staff', 'permissions', 'schema_migrations',
+      'tenants', 'users', 'user_credentials', 'user_sessions', 'platform_staff', 'permissions', 'schema_migrations',
       'statutory_rule_sets', 'plans', 'signup_requests',
     ]);
     const unexpected = names.filter((n) => !allowed.has(n));
