@@ -11,8 +11,8 @@ import { LocalAuth } from './auth/local-auth';
 
 /** Builds the HTTP app. Tests pass a local verifier; production passes the OIDC one. */
 export async function createApp(config: AppConfig, verifier: TokenVerifier, local?: LocalAuth): Promise<INestApplication> {
-  // Password sessions are signed by the API itself; without a key that sign-in is simply off.
-  const localAuth = local ?? await LocalAuth.create(config.LOCAL_AUTH_ISSUER, config.OIDC_AUDIENCE, config.LOCAL_AUTH_PRIVATE_KEY);
+  // Password sessions are signed by the API itself, with a key derived from FILE_SIGNING_SECRET unless one is given.
+  const localAuth = local ?? await LocalAuth.create(config.LOCAL_AUTH_ISSUER, config.OIDC_AUDIENCE, { enabled: config.PASSWORD_LOGIN === 'on', privateJwk: config.LOCAL_AUTH_PRIVATE_KEY, secret: config.FILE_SIGNING_SECRET });
   const app = await NestFactory.create<NestExpressApplication>(AppModule.register(config, localAuth.wrap(verifier), localAuth), { logger: config.NODE_ENV === 'test' ? (process.env.TEST_LOG ? ['error'] : false) : ['error', 'warn', 'log'] });
   app.disable('x-powered-by');
   app.set('trust proxy', 1);

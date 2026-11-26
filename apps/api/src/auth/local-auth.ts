@@ -1,10 +1,12 @@
-import { createHash, randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto';
-import { SignJWT, createLocalJWKSet, decodeJwt, exportJWK, importJWK, type JWK, type KeyLike } from 'jose';
-import { OidcTokenVerifier, TokenVerifier, VerifiedToken } from './verifier';
+import { type KeyObject, createHash, createPrivateKey, createPublicKey, hkdfSync, randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto';
+import { SignJWT, decodeJwt, jwtVerify, type JWK } from 'jose';
+import { TokenVerifier, VerifiedToken } from './verifier';
 
 /**
  * Sign-in with e-mail + password, for people who have no work account at the identity provider.
- * The API checks the password itself and signs a session token with its OWN key (LOCAL_AUTH_PRIVATE_KEY).
+ * The API checks the password itself and signs a session token with its OWN key. By default that key is derived from
+ * FILE_SIGNING_SECRET, so the feature works on every deployment with no extra setting; LOCAL_AUTH_PRIVATE_KEY replaces
+ * it with a key of your own, and PASSWORD_LOGIN=off switches the feature off.
  * Those tokens carry a separate issuer, so they can never be confused with the identity provider's, and they never
  * claim a second factor: actions that need MFA stay closed to a password-only session.
  */
@@ -40,44 +42,66 @@ export const newLoginCode = (): string => Array.from({ length: 10 }, () => ALPHA
 export const loginCodeHash = (email: string, code: string): Buffer => createHash('sha256').update(`login-code:${email.toLowerCase()}:${code}`).digest();
 
 // ---- session tokens ---------------------------------------------------------------------------------------------
-export class LocalAuth {
-  private constructor(readonly issuer: string, private readonly audience: string, private readonly key: KeyLike | Uint8Array | null, private readonly kid: string, private readonly inner: TokenVerifier | null) {}
+export interface LocalAuthOptions {
+  /** `false` switches password sign-in off altogether. */
+  enabled?: boolean;
+  /** JSON of an RSA private key (JWK). Takes precedence over the derived key. */
+  privateJwk?: string;
+  /** A long deployment secret. An Ed25519 signing key is derived from it, the same on every instance and restart. */
+  secret?: string;
+}
 
-  /** `privateJwk` is the JSON of an RSA private key in JWK form. Without it password sign-in is switched off. */
-  static async create(issuer: string, audience: string, privateJwk?: string): Promise<LocalAuth> {
-    if (!privateJwk) return new LocalAuth(issuer, audience, null, '', null);
-    let jwk: JWK;
-    try { jwk = JSON.parse(privateJwk) as JWK; } catch { throw new Error('Invalid configuration: LOCAL_AUTH_PRIVATE_KEY must be the JSON of an RSA private key (JWK)'); }
-    if (jwk.kty !== 'RSA' || !jwk.d) throw new Error('Invalid configuration: LOCAL_AUTH_PRIVATE_KEY must be an RSA private key (JWK)');
-    const key = await importJWK(jwk, 'RS256');
-    const pub = await exportJWK(await importJWK({ kty: 'RSA', n: jwk.n, e: jwk.e }, 'RS256'));
-    const kid = createHash('sha256').update(String(jwk.n)).digest('base64url').slice(0, 16);
-    const inner = new OidcTokenVerifier(issuer, audience, createLocalJWKSet({ keys: [{ ...pub, kid, alg: 'RS256', use: 'sig' }] }));
-    return new LocalAuth(issuer, audience, key, kid, inner);
+/** PKCS#8 wrapper for a raw 32-byte Ed25519 seed. */
+const ED25519_PKCS8_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex');
+function derivedKey(secret: string): KeyObject {
+  // HKDF with its own label: knowing this key says nothing about the secret, or about anything else derived from it.
+  const seed = Buffer.from(hkdfSync('sha256', secret, 'humantech', 'password-session-signing-key-v1', 32));
+  return createPrivateKey({ key: Buffer.concat([ED25519_PKCS8_PREFIX, seed]), format: 'der', type: 'pkcs8' });
+}
+
+export class LocalAuth {
+  private constructor(readonly issuer: string, private readonly audience: string, private readonly keys: { alg: 'RS256' | 'EdDSA'; priv: KeyObject; pub: KeyObject; kid: string } | null) {}
+
+  static async create(issuer: string, audience: string, o: LocalAuthOptions = {}): Promise<LocalAuth> {
+    if (o.enabled === false || (!o.privateJwk && !o.secret)) return new LocalAuth(issuer, audience, null);
+    let priv: KeyObject; let alg: 'RS256' | 'EdDSA';
+    if (o.privateJwk) {
+      let jwk: JWK;
+      try { jwk = JSON.parse(o.privateJwk) as JWK; } catch { throw new Error('Invalid configuration: LOCAL_AUTH_PRIVATE_KEY must be the JSON of an RSA private key (JWK)'); }
+      if (jwk.kty !== 'RSA' || !jwk.d) throw new Error('Invalid configuration: LOCAL_AUTH_PRIVATE_KEY must be an RSA private key (JWK)');
+      priv = createPrivateKey({ key: jwk as never, format: 'jwk' }); alg = 'RS256';
+    } else {
+      priv = derivedKey(o.secret!); alg = 'EdDSA';
+    }
+    const pub = createPublicKey(priv);
+    const kid = createHash('sha256').update(pub.export({ type: 'spki', format: 'der' })).digest('base64url').slice(0, 16);
+    return new LocalAuth(issuer, audience, { alg, priv, pub, kid });
   }
 
-  get enabled(): boolean { return this.key !== null; }
+  get enabled(): boolean { return this.keys !== null; }
 
   async sign(u: { subject: string; email: string; name: string }): Promise<{ token: string; expiresIn: number }> {
-    if (!this.key) throw new Error('password sign-in is not configured');
+    if (!this.keys) throw new Error('password sign-in is not configured');
     const token = await new SignJWT({ email: u.email, email_verified: false, name: u.name, amr: ['pwd'] })
-      .setProtectedHeader({ alg: 'RS256', kid: this.kid }).setIssuer(this.issuer).setAudience(this.audience)
-      .setSubject(u.subject).setIssuedAt().setExpirationTime(`${SESSION_SECONDS}s`).sign(this.key);
+      .setProtectedHeader({ alg: this.keys.alg, kid: this.keys.kid }).setIssuer(this.issuer).setAudience(this.audience)
+      .setSubject(u.subject).setIssuedAt().setExpirationTime(`${SESSION_SECONDS}s`).sign(this.keys.priv);
     return { token, expiresIn: SESSION_SECONDS };
   }
 
   /** Tokens we issued are checked against our key; every other token goes to the identity provider's verifier. */
   wrap(oidc: TokenVerifier): TokenVerifier {
-    const local = this.inner; const issuer = this.issuer;
-    if (!local) return oidc;
+    const keys = this.keys; const issuer = this.issuer; const audience = this.audience;
+    if (!keys) return oidc;
     return {
       async verify(token: string): Promise<VerifiedToken> {
         let iss: unknown;
         try { iss = decodeJwt(token).iss; } catch { throw new Error('malformed token'); }
         if (iss !== issuer) return oidc.verify(token);
-        const v = await local.verify(token);
-        if (!v.subject.startsWith('local:')) throw new Error('not a password session');
-        return { ...v, mfa: false };
+        const { payload } = await jwtVerify(token, keys.pub, { issuer, audience, algorithms: [keys.alg], clockTolerance: 5 });
+        const email = typeof payload.email === 'string' ? payload.email : '';
+        if (!payload.sub || !payload.sub.startsWith('local:') || !email) throw new Error('not a password session');
+        // A password alone is one factor: these sessions never count as multi-factor.
+        return { subject: payload.sub, email, emailVerified: false, name: typeof payload.name === 'string' && payload.name ? payload.name : email, mfa: false };
       },
     };
   }

@@ -9,7 +9,9 @@ const schema = z.object({
   OIDC_AUDIENCE: z.string().min(1),
   /** Defaults to `${OIDC_ISSUER}/.well-known/jwks.json`. */
   OIDC_JWKS_URI: z.string().url().optional(),
-  /** JSON of an RSA private key (JWK). When set, people can sign in with e-mail + password; unset switches that off. */
+  /** Sign-in with e-mail + password (login codes handed out by the company). On unless set to "off". */
+  PASSWORD_LOGIN: z.enum(['on', 'off']).default('on'),
+  /** Optional: JSON of an RSA private key (JWK) to sign password sessions with. Default: a key derived from FILE_SIGNING_SECRET. */
   LOCAL_AUTH_PRIVATE_KEY: z.string().min(1).optional(),
   /** Issuer written into password-session tokens. Must differ from OIDC_ISSUER. */
   LOCAL_AUTH_ISSUER: z.string().min(1).default('humantech-password'),
